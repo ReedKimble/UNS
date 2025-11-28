@@ -890,6 +890,9 @@
         mask_eq: { returnType: 'uvalue', required: ['uvalue', 'uvalue'], optional: [] },
         collection: { returnType: 'uvalue', required: [], optional: [], variadicType: 'uvalue' },
         inject: { returnType: 'uvalue', required: ['scalarOrUValue', 'scalar'], optional: ['scalar'] },
+        CANCEL: { returnTuple: ['uvalue', 'uvalue'], required: ['uvalue', 'uvalue'], optional: [] },
+        CANCEL_JOINT: { returnType: 'uvalue', required: ['uvalue', 'uvalue'], optional: [] },
+        MIX: { returnType: 'uvalue', required: ['uvalue', 'uvalue', 'scalar'], optional: [] },
         meanU: { returnType: 'scalar', required: ['uvalue'], optional: ['stateLike'] },
         sumU: { returnType: 'scalar', required: ['uvalue'], optional: ['stateLike'] },
         integralU: { returnType: 'scalar', required: ['uvalue'], optional: ['stateLike'] },
@@ -915,6 +918,8 @@
       };
       const PRECEDENCE = { "+u": 1, "*u": 2, "*s": 2 };
       const HELPER_CALLS = new Set([...Object.keys(HELPER_SPECS), 'uvalue_of', 'frac']);
+      const tupleType = (elements) => ({ kind: 'tuple', elements: Array.isArray(elements) ? [...elements] : [] });
+      const isTupleType = (value) => Boolean(value && typeof value === 'object' && value.kind === 'tuple');
       const UNSOperators = (() => {
         const EPS = 1e-12;
         const SUM_TOLERANCE = 1e-9;
@@ -1894,6 +1899,13 @@ printU(unstable)`
         return Math.min(MAX_MICROSTATES, Math.max(1, Math.floor(value)));
       }
 
+      function clampUnitInterval(value) {
+        if (!Number.isFinite(value)) return 0;
+        if (value <= 0) return 0;
+        if (value >= 1) return 1;
+        return value;
+      }
+
       function loadMicrostatePreference() {
         if (!storage) return DEFAULT_MICROSTATES;
         const raw = parseInt(storage.getItem(MICROSTATE_STORAGE_KEY) ?? '', 10);
@@ -2300,6 +2312,20 @@ printU(unstable)`
 
         parseDeclOrExpr() {
           if (this.match('keyword', 'let')) {
+            if (this.match('punct', '(')) {
+              const names = [];
+              if (!this.match('punct', ')')) {
+                do {
+                  const ident = this.expect('identifier');
+                  names.push(ident.value);
+                } while (this.match('punct', ','));
+                this.expect('punct', ')');
+              }
+              if (!names.length) throw new Error('Destructuring requires at least one binding');
+              this.expect('operator', '=');
+              const value = this.parseExpr();
+              return { type: 'LetTuple', names, value };
+            }
             const nameToken = this.expect('identifier');
             this.expect('operator', '=');
             const value = this.parseExpr();
@@ -2524,6 +2550,15 @@ printU(unstable)`
           this.order = [];
         }
 
+        resolveReturnType(spec) {
+          if (!spec) return 'void';
+          if (spec.returnTuple) return tupleType(spec.returnTuple);
+          const declared = spec.returnType;
+          if (Array.isArray(declared)) return tupleType(declared);
+          if (declared && isTupleType(declared)) return tupleType(declared.elements ?? []);
+          return declared ?? 'void';
+        }
+
         ensureUValueType(type, context) {
           if (type === 'uvalue') return 'uvalue';
           if (type === 'scalar') {
@@ -2574,9 +2609,28 @@ printU(unstable)`
           for (const node of program.body) {
             if (node.type === 'LetDecl') {
               const exprType = this.emitExpr(node.value);
+              if (isTupleType(exprType)) {
+                throw new Error(`let ${node.name} expects a single value but received a tuple; destructure with let (...) = ...`);
+              }
               this.emit('STORE', node.name);
               this.envTypes.set(node.name, exprType);
               if (!this.order.includes(node.name)) this.order.push(node.name);
+              finalType = 'void';
+            } else if (node.type === 'LetTuple') {
+              const exprType = this.emitExpr(node.value);
+              if (!isTupleType(exprType)) throw new Error('Destructuring requires a tuple value');
+              const elements = exprType.elements ?? [];
+              if (elements.length !== node.names.length) {
+                throw new Error(`Destructuring expected ${node.names.length} values but received ${elements.length}`);
+              }
+              this.emit('UNPACK_TUPLE', elements.length);
+              for (let i = node.names.length - 1; i >= 0; i -= 1) {
+                const name = node.names[i];
+                const elementType = elements[i];
+                this.emit('STORE', name);
+                this.envTypes.set(name, elementType);
+                if (!this.order.includes(name)) this.order.push(name);
+              }
               finalType = 'void';
             } else if (node.type === 'StateDecl') {
               let exprType = this.emitExpr(node.value);
@@ -2727,7 +2781,7 @@ printU(unstable)`
                 expectedTypes[idx] = actualType;
               });
               this.emit('CALL_HELPER', node.name, argCount);
-              return spec.returnType ?? 'void';
+              return this.resolveReturnType(spec);
             }
             case 'Assemble': {
               if (!node.entries.length) {
@@ -2797,6 +2851,9 @@ printU(unstable)`
         cloneValue(value) {
           if (!value) return value;
           if (value.kind === 'scalar') return { kind: 'scalar', data: cloneComplex(value.data) };
+          if (value.kind === 'tuple') {
+            return { kind: 'tuple', items: value.items.map((item) => this.cloneValue(item)) };
+          }
           return { kind: value.kind, ref: value.ref };
         }
 
@@ -2808,6 +2865,32 @@ printU(unstable)`
           const value = this.stack.pop();
           if (!value) throw new Error('Stack underflow');
           return value;
+        }
+
+        extractSimplexVector(ref) {
+          const values = this.heap.values[ref];
+          const simplex = new Array(this.M);
+          let total = 0;
+          for (let i = 0; i < this.M; i++) {
+            const magnitude = Math.max(0, decodeReal(magnitudeSquared(values[i])));
+            simplex[i] = magnitude;
+            total += magnitude;
+          }
+          if (total <= 0) {
+            const fallback = 1 / Math.max(1, this.M);
+            return simplex.map(() => fallback);
+          }
+          return simplex.map((value) => value / total);
+        }
+
+        simplexToUValue(vector) {
+          const arr = new Array(this.M);
+          for (let i = 0; i < this.M; i++) {
+            const value = Number.isFinite(vector[i]) ? vector[i] : 0;
+            arr[i] = { real: encodeReal(value), imag: 0 };
+          }
+          const ref = this.allocateUValue(arr);
+          return { kind: 'uvalue', ref };
         }
 
         envSet(name, value) {
@@ -3315,6 +3398,46 @@ printU(unstable)`
               }
               return null;
             }
+            case 'CANCEL': {
+              const u = this.ensureUValueArg(args[0], 'CANCEL u');
+              const v = this.ensureUValueArg(args[1], 'CANCEL v');
+              const simplexU = this.extractSimplexVector(u.ref);
+              const simplexV = this.extractSimplexVector(v.ref);
+              const [uResidual, vResidual] = UNSOperators.CANCEL(simplexU, simplexV);
+              return {
+                kind: 'tuple',
+                items: [this.simplexToUValue(uResidual), this.simplexToUValue(vResidual)]
+              };
+            }
+            case 'CANCEL_JOINT': {
+              const u = this.ensureUValueArg(args[0], 'CANCEL_JOINT u');
+              const v = this.ensureUValueArg(args[1], 'CANCEL_JOINT v');
+              const simplexU = this.extractSimplexVector(u.ref);
+              const simplexV = this.extractSimplexVector(v.ref);
+              const joint = UNSOperators.CANCEL_JOINT(simplexU, simplexV);
+              return this.simplexToUValue(joint);
+            }
+            case 'MIX': {
+              const u = this.ensureUValueArg(args[0], 'MIX u');
+              const v = this.ensureUValueArg(args[1], 'MIX v');
+              const alphaRaw = args[2] ? this.scalarToFloat(args[2], 'MIX α') : 0;
+              const alpha = clampUnitInterval(alphaRaw);
+              const beta = 1 - alpha;
+              const alphaScalar = { real: encodeReal(alpha), imag: 0 };
+              const betaScalar = { real: encodeReal(beta), imag: 0 };
+              const arrU = this.heap.values[u.ref];
+              const arrV = this.heap.values[v.ref];
+              const out = new Array(this.M);
+              for (let i = 0; i < this.M; i++) {
+                const scaledU = complexScale(alphaScalar, arrU[i]);
+                const scaledV = complexScale(betaScalar, arrV[i]);
+                const mixed = complexAdd(scaledU, scaledV);
+                mixed.novelId = scaledU.novelId || scaledV.novelId;
+                out[i] = mixed;
+              }
+              const ref = this.allocateUValue(out);
+              return { kind: 'uvalue', ref };
+            }
             case 'meanU': {
               const value = this.ensureUValueArg(args[0], 'meanU');
               const state = args[1] ? this.resolveStateValue(args[1]) : this.makeUniformStateValue();
@@ -3398,6 +3521,9 @@ printU(unstable)`
           if (value.kind === 'ustate') {
             const norm = this.computeStateNorm(value.ref);
             return `norm≈${norm.toFixed(4)}`;
+          }
+          if (value.kind === 'tuple') {
+            return `tuple(${value.items?.length ?? 0})`;
           }
           return 'novel';
         }
@@ -3614,6 +3740,19 @@ printU(unstable)`
                 }
                 const ref = this.allocateUValue(out);
                 this.push({ kind: 'uvalue', ref });
+                break;
+              }
+              case 'UNPACK_TUPLE': {
+                const expected = args[0] ?? 0;
+                const tuple = this.pop();
+                if (!tuple || tuple.kind !== 'tuple') throw new Error('UNPACK_TUPLE requires a tuple value');
+                const items = tuple.items ?? [];
+                if (items.length !== expected) {
+                  throw new Error(`UNPACK_TUPLE expected ${expected} values but received ${items.length}`);
+                }
+                for (let i = 0; i < items.length; i++) {
+                  this.push(this.cloneValue(items[i]));
+                }
                 break;
               }
               case 'HALT': {
