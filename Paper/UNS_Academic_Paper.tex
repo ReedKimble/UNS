@@ -1,0 +1,97 @@
+
+\documentclass[11pt]{amsart}
+\usepackage{amsmath, amssymb, amsthm}
+\usepackage{hyperref}
+
+\title{The Universal Number Set (UNS):\\
+A Representation-Invariant Numerical Framework}
+\author{Reed Kimble}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+We introduce the \emph{Universal Number Set (UNS)}, a numerical framework in which
+numbers are defined as microstate-distributed functions with state-dependent evaluation,
+representation invariance, and total operational closure. UNS embeds classical arithmetic
+while extending it with expressive capabilities not available in traditional number systems.
+This paper formalizes UNS, positions it within theoretical mathematics, compares it to
+classical numerical frameworks, and provides philosophical justification for its structure.
+\end{abstract}
+
+\section{Introduction}
+
+Classical mathematics treats numbers as atomic objects: elements of sets such as
+$\mathbb{Z}, \mathbb{Q}, \mathbb{R}$, or $\mathbb{C}$. These systems offer well-defined
+algebraic and analytic tools but lack means to express internal distribution, undefined
+operations, or representation-invariant semantics. The \emph{Universal Number Set (UNS)}
+proposes a structural generalization in which a number is a function
+$f : X \to \mathbb{C}$ over a normalized microstate domain $(X,\mu)$.
+This reinterprets classical numbers as constant functions and enables new forms of
+computation and analysis.
+
+\section{Definition of UNS}
+
+A UNS universe is a measure space $(X,\mu)$ with $\mu(X)=1$. A \emph{UNS value} is a function
+$f : X \to \mathbb{C}$. A \emph{state} is a function $\psi : X \to \mathbb{C}$ satisfying
+\[
+\int_X |\psi(x)|^2\, d\mu(x) = 1.
+\]
+The \emph{readout} of a value $f$ under a state $\psi$ is defined by
+\[
+\mathrm{read}(f \mid \psi)
+= \int_X f(x)\, |\psi(x)|^2\, d\mu(x).
+\]
+
+\section{Dimensional Invariance}
+
+UNS requires readout to be invariant under any admissible dimensional transform
+$D(N,\psi)$, a structural refinement that preserves normalization and functional mapping.
+This requirement has no classical analogue and resembles coordinate-free structures in
+geometry rather than traditional number systems.
+
+\section{Total Operational Closure}
+
+Classical arithmetic is partial: operations such as $a/0$ are undefined. UNS replaces this
+with \emph{novel values}, symbolic but first-class objects with provenance:
+\[
+\frac{3}{0} \mapsto \mathrm{novel}(\mathrm{divide}, (3,0), x).
+\]
+This treatment differs from non-standard analysis, domain theory, and error algebra
+frameworks. Instead, UNS asserts that arithmetic should be total, compositional, and
+structurally meaningful.
+
+\section{Comparisons with Classical and Extended Number Systems}
+
+UNS intersects thematically with probability theory, Hilbert space methods, operator
+algebras, and non-standard numbers, but does not coincide with any of them. Unlike
+hyperreals, surreals, or $p$-adics, UNS extends not the \emph{set of scalar values} but the
+\emph{structure of what a number is}. Classical numbers appear as constant functions, while
+UNS values may encode variation across microstates.
+
+\section{Computational Semantics}
+
+A canonical execution model is defined using Q16.16 fixed-point complex values, finite
+microstate arrays, lifted unary and binary operations, and provenance-aware novel value
+tables. This makes UNS directly executable on embedded systems, web runtimes, and
+general-purpose architectures. Most mathematical frameworks do not specify such a
+canonical computational semantics.
+
+\section{Philosophical Significance}
+
+UNS aligns with structuralist and representation-independent mathematics
+\cite{Shapiro1997, Landry2007}. It reframes numbers as invariant structures rather than
+atomic elements, while retaining compatibility with classical arithmetic. UNS suggests that
+numeric identity may not be inherently atomic, but instead distributed and evaluative.
+
+\section{Conclusion}
+
+UNS constitutes a novel numerical category: representation-invariant, operationally total,
+distribution-sensitive, and computationally grounded. It embeds classical arithmetic while
+extending expressive capacity in ways unavailable to existing number systems.
+
+\bibliographystyle{amsplain}
+\bibliography{uns_refs}
+
+\end{document}

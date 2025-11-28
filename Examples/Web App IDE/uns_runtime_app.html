@@ -641,6 +641,11 @@
           <button id="sampleBtn" class="secondary">Sample Program</button>
           <button id="clearBtn" class="secondary">Clear</button>
         </div>
+        <div class="button-row">
+          <button id="saveBtn" class="secondary">Save .unse</button>
+          <button id="loadBtn" class="secondary">Load .unse</button>
+          <input type="file" id="unseFileInput" accept=".unse,text/plain" class="sr-only" aria-label="Load .unse file" />
+        </div>
         <span id="cursorStatus" class="cursor-status" aria-live="polite">Line 1, Col 1</span>
       </div>
       <div class="microstate-control">
@@ -1356,6 +1361,8 @@
       const DEFAULT_MICROSTATES = 512;
       const MAX_MICROSTATES = 32768;
       const MICROSTATE_STORAGE_KEY = 'uns_microstate_count';
+      const DEFAULT_UNSE_FILENAME = 'program.unse';
+      let currentFileName = DEFAULT_UNSE_FILENAME;
 
       const ui = {
         source: document.getElementById('unsSource'),
@@ -1390,6 +1397,11 @@
         diagnostics: {
           print: document.getElementById('diagnosticPrint'),
           plot: document.getElementById('diagnosticPlot')
+        },
+        files: {
+          saveBtn: document.getElementById('saveBtn'),
+          loadBtn: document.getElementById('loadBtn'),
+          input: document.getElementById('unseFileInput')
         },
         simplex: {
           panel: document.getElementById('simplexPanel'),
@@ -1486,6 +1498,7 @@ printU(unstable)`
           const script = EXAMPLE_SCRIPTS[selected];
           if (!script) return;
           ui.source.value = script.code;
+          currentFileName = DEFAULT_UNSE_FILENAME;
           updateHighlight();
         });
       }
@@ -1533,6 +1546,7 @@ printU(unstable)`
       setupCollapsibles();
       setupSimplexToolkit();
       setupResizer();
+  setupFileIo();
 
       function setupCollapsibles() {
         document.querySelectorAll('[data-collapsible]').forEach(section => {
@@ -1780,8 +1794,61 @@ printU(unstable)`
         });
       }
 
+      function setupFileIo() {
+        const controls = ui.files;
+        if (!controls?.saveBtn || !controls.loadBtn || !controls.input) return;
+        controls.saveBtn.addEventListener('click', downloadCurrentProgram);
+        controls.loadBtn.addEventListener('click', () => {
+          controls.input.value = '';
+          controls.input.click();
+        });
+        controls.input.addEventListener('change', handleFileSelection);
+      }
+
+      function normalizeFilename(name) {
+        const trimmed = (name ?? '').trim();
+        const base = trimmed || DEFAULT_UNSE_FILENAME;
+        return base.toLowerCase().endsWith('.unse') ? base : `${base}.unse`;
+      }
+
+      function downloadCurrentProgram() {
+        const content = ui.source?.value ?? '';
+        const filename = normalizeFilename(currentFileName);
+        const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const anchor = document.createElement('a');
+        anchor.href = url;
+        anchor.download = filename;
+        document.body.appendChild(anchor);
+        anchor.click();
+        document.body.removeChild(anchor);
+        setTimeout(() => URL.revokeObjectURL(url), 0);
+        if (ui.status) ui.status.textContent = `Saved ${filename}`;
+      }
+
+      function handleFileSelection(event) {
+        const input = event.currentTarget instanceof HTMLInputElement ? event.currentTarget : null;
+        const file = input?.files && input.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = () => {
+          const text = typeof reader.result === 'string' ? reader.result : '';
+          ui.source.value = text;
+          updateHighlight();
+          currentFileName = file.name || DEFAULT_UNSE_FILENAME;
+          if (ui.status) ui.status.textContent = `Loaded ${currentFileName}`;
+          if (input) input.value = '';
+        };
+        reader.onerror = () => {
+          if (ui.status) ui.status.textContent = `Failed to load ${file.name ?? 'file'}: ${reader.error?.message ?? 'Unknown error'}`;
+          if (input) input.value = '';
+        };
+        reader.readAsText(file);
+      }
+
       document.getElementById('sampleBtn').addEventListener('click', () => {
         ui.source.value = sampleProgram;
+        currentFileName = DEFAULT_UNSE_FILENAME;
         updateHighlight();
       });
 
@@ -1795,6 +1862,7 @@ printU(unstable)`
         ui.readTester.innerHTML = '';
         ui.readResult.textContent = '';
         currentVm = null;
+        currentFileName = DEFAULT_UNSE_FILENAME;
         resetInspectors();
         resetDiagnostics();
         updateHighlight();

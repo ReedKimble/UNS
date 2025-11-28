@@ -1,0 +1,440 @@
+Internet-Draft                                             R. Kimble
+Intended status: Informational                          Independent
+Expires: <TBD>                                         November 2025
+
+            The Universal Number Set (UNS) Specification
+                 and the .unse Expression File Format
+
+Abstract
+
+   This document specifies the Universal Number Set (UNS), a
+   representation-invariant numerical framework in which numbers are
+   expressed as microstate-distributed functions with state-dependent
+   evaluation, dimensional invariance, and total operational closure.
+   It also standardizes the ".unse" file extension and the textual
+   format for UNS expression files.
+
+   UNS embeds classical arithmetic as a special case while extending
+   it with capabilities that support distributed numeric structure,
+   safe handling of classically undefined operations (e.g., division
+   by zero), and a canonical reference execution model.
+
+Status of This Memo
+
+   This Internet-Draft is submitted in full conformance with the
+   provisions of BCP 78 and BCP 79.
+
+   This document is intended for publication in the Independent
+   Submission Stream. It is not a product of the IETF and is not a
+   standards-track specification. The IESG review of this document
+   is limited to security, interoperability, and conflict review as
+   described in RFC 7841.
+
+   Internet-Drafts are working documents of the Internet Engineering
+   Task Force (IETF), its areas, and its working groups. Note that
+   other groups may also distribute working documents as
+   Internet-Drafts.
+
+   Internet-Drafts are draft documents valid for a maximum of six
+   months and may be updated, replaced, or obsoleted by other
+   documents at any time. It is inappropriate to use Internet-Drafts
+   as reference material or to cite them other than as "work in
+   progress."
+
+Copyright Notice
+
+   Copyright (c) 2025 IETF Trust and the persons identified as the
+   document authors. All rights reserved.
+
+   This document is subject to BCP 78 and the IETF Trust's Legal
+   Provisions Relating to IETF Documents
+   (https://trustee.ietf.org/license-info) in effect on the date of
+   publication of this document. Please review these documents
+   carefully, as they describe your rights and restrictions with
+   respect to this document.
+
+Table of Contents
+
+   1.  Introduction
+   2.  Terminology
+   3.  UNS Mathematical Model
+       3.1.  UNS Universe
+       3.2.  UNS Values (UValues)
+       3.3.  States (UStates)
+       3.4.  Readout
+       3.5.  Dimensional Transform and Invariance
+   4.  Lifted Operations and Novel Values
+       4.1.  Unary Lifting
+       4.2.  Binary Lifting
+       4.3.  Novel Values and Provenance
+   5.  Type System (Informative Summary)
+   6.  Syntax and Grammar for UNS Expressions
+   7.  The .unse File Extension and File Format
+       7.1.  File Extension Registration
+       7.2.  Text Format for .unse Files
+       7.3.  Example .unse File
+   8.  Reference Execution Model (UNS_Runtime32_Spec)
+   9.  Conformance Requirements
+   10. Security Considerations
+   11. IANA Considerations
+   12. References
+       12.1.  Normative References
+       12.2.  Informative References
+   Appendix A.  Rationale and Design Motivation
+   Appendix B.  Additional Examples
+   Acknowledgements
+   Author's Address
+
+1.  Introduction
+
+   Classical number systems (integers, rationals, reals, complex
+   numbers) treat numbers as atomic elements. Arithmetic is defined
+   over these elements, but many operations are only partially
+   defined: division by zero, square roots of negative reals (without
+   extending to complex numbers), and other domain issues produce
+   undefined expressions.
+
+   The Universal Number Set (UNS) is a structural generalization in
+   which a "number" is defined instead as a function from a microstate
+   domain X into the complex numbers, with a separate "state" function
+   controlling how that value is interpreted. A readout operator
+   produces a classical scalar by integrating a UNS value against the
+   squared magnitude of a state.
+
+   UNS aims to:
+
+   * Embed classical arithmetic as a special case (constant functions).
+   * Allow numbers to have internal microstate structure.
+   * Ensure total operational closure, including for classically
+     undefined operations, via "novel values".
+   * Provide a representation-invariant readout independent of the
+     chosen dimensionality.
+   * Offer a simple, canonical execution model based on 32-bit
+     fixed-point arithmetic.
+
+   This document defines the UNS model and the associated ".unse" file
+   format for interoperable expression files.
+
+2.  Terminology
+
+   UValue
+      A Universal Number Set value: a function f : X -> C (complex
+      numbers) in the mathematical model, or its finite
+      approximation in the execution model.
+
+   UState
+      A normalized state psi : X -> C such that the integral of
+      |psi|^2 equals 1. Used to interpret UValues via readout.
+
+   Microstate
+      An element x in X, or an index 0..M-1 in a finite runtime
+      implementation.
+
+   Readout
+      An operation read(f | psi) that produces a classical scalar
+      by integrating f against |psi|^2.
+
+   Lifted Operation
+      A classical scalar function h or k promoted to act component-
+      wise across microstates of a UValue (or pair of UValues).
+
+   Novel Value
+      A first-class UNS value produced when a lifted operation
+      encounters classically undefined input (e.g., division by
+      zero). Novel values carry provenance metadata.
+
+   .unse File
+      A UTF-8 text file containing one UNS program expressed in
+      the UNS expression language specified in this document.
+
+3.  UNS Mathematical Model
+
+3.1.  UNS Universe
+
+   A UNS universe is a measure space (X, μ) with μ(X) = 1.
+
+3.2.  UNS Values (UValues)
+
+   A UValue is a function:
+
+      f : X -> C.
+
+   Classical scalars a in C embed as constant UValues:
+
+      f(x) = a   for all x in X.
+
+3.3.  States (UStates)
+
+   A UState is a function:
+
+      psi : X -> C
+
+   satisfying the normalization constraint:
+
+      ∫_X |psi(x)|^2 dμ(x) = 1.
+
+3.4.  Readout
+
+   The readout operator is defined as:
+
+      read(f | psi) = ∫_X f(x) |psi(x)|^2 dμ(x).
+
+   This yields a classical complex scalar.
+
+3.5.  Dimensional Transform and Invariance
+
+   A dimensional transform D(N, psi) structurally reshapes psi into
+   an N-dimensional representation while preserving normalization.
+
+   UNS requires that readout be invariant under such transforms:
+
+      read(f | psi) = read(f | D(N, psi))
+
+   for all admissible D and all values f and states psi. This expresses
+   representation independence with respect to chosen dimensionality.
+
+4.  Lifted Operations and Novel Values
+
+4.1.  Unary Lifting
+
+   Given a scalar function:
+
+      h : C -> C
+
+   UNS defines a lifted unary operation:
+
+      lift1(h)(f)(x) = h(f(x)).
+
+4.2.  Binary Lifting
+
+   Given a scalar function:
+
+      k : C × C -> C
+
+   UNS defines a lifted binary operation:
+
+      lift2(k)(f, g)(x) = k(f(x), g(x)).
+
+4.3.  Novel Values and Provenance
+
+   When k(f(x), g(x)) is undefined in classical arithmetic (for
+   example, division by zero), UNS does not treat this as an error.
+   Instead, it produces a novel value:
+
+      novel(op, args, x).
+
+   An implementation MUST maintain a provenance structure sufficient
+   to identify:
+
+   * the operation op,
+   * the scalar input arguments at that microstate,
+   * the microstate index.
+
+5.  Type System (Informative Summary)
+
+   The following high-level types are used:
+
+   * Scalar   — classical (complex) scalar values.
+   * UValue   — UNS values (microstate-distributed).
+   * UState   — normalized states.
+   * Novel    — novel numeric values introduced by undefined behavior.
+
+   Implementations MAY extend this with partiality or effect typing.
+   A more detailed type system specification is outside the scope of
+   this Independent Submission but is recommended for tool authors.
+
+6.  Syntax and Grammar for UNS Expressions
+
+   UNS uses a small expression language that is suitable for human
+   authoring and machine parsing.
+
+   The following grammar is informative but sufficient for most
+   implementations.
+
+   Tokens:
+
+      IDENT      ::= [A-Za-z_][A-Za-z0-9_]*
+      NUMBER     ::= integer or floating-point literal
+      COMMENT    ::= '//' <text up to end of line>
+
+   Comments:
+
+      Line comments begin with // and extend to the end of line.
+
+   Non-terminals (in EBNF-like form):
+
+      program   ::= { item }
+
+      item      ::= letdecl
+                  | statedecl
+                  | expr
+
+      letdecl   ::= "let" IDENT "=" expr
+
+      statedecl ::= "state" IDENT "=" expr
+
+      expr      ::= read_expr
+                  | lift1_expr
+                  | lift2_expr
+                  | dtx_expr
+                  | bin_expr
+                  | const_expr
+                  | primary
+
+      read_expr ::= "read" "(" expr "|" expr ")"
+
+      lift1_expr ::= "lift1" "(" IDENT "," expr ")"
+
+      lift2_expr ::= "lift2" "(" IDENT "," expr "," expr ")"
+
+      dtx_expr  ::= "D" "(" NUMBER "," expr ")"
+
+      bin_expr  ::= expr binop expr
+
+      binop     ::= "+u" | "*u" | "*s"
+
+      const_expr ::= "const" "(" NUMBER ")"
+
+      primary   ::= IDENT
+                  | NUMBER
+                  | "(" expr ")"
+
+7.  The .unse File Extension and File Format
+
+7.1.  File Extension Registration
+
+   This document defines ".unse" as the conventional file extension
+   for UNS expression files.
+
+   File extension: .unse
+
+   Intended usage:  UNS expression source files, human-readable.
+
+   Typical media type:  text/plain; charset=utf-8
+
+7.2.  Text Format for .unse Files
+
+   A ".unse" file:
+
+   * MUST be encoded as UTF-8 text.
+   * SHOULD contain a single UNS program as defined in Section 6.
+   * MAY contain leading or trailing whitespace and blank lines.
+   * MAY contain line comments beginning with //.
+   * MUST NOT use '#' to denote comments; '#' MAY be used in
+     identifiers if an implementation explicitly extends the grammar
+     (not RECOMMENDED in this version).
+   * SHOULD avoid non-ASCII Unicode characters in identifiers for
+     maximal interoperability.
+   * MUST be syntactically valid according to the implementation's
+     UNS grammar in order to be considered a conformant UNS program.
+
+   A ".unse" program usually consists of:
+
+   * zero or more state declarations,
+   * zero or more value declarations,
+   * zero or more top-level expressions (often a final read(...) call).
+
+   Implementations MAY support multiple independent expressions but are
+   RECOMMENDED to treat the last expression as the primary result for
+   interactive tools.
+
+7.3.  Example .unse File
+
+   The following is a minimal example:
+
+      // hypotenuse of a 3-4-5 triangle
+
+      let A = const(3)
+      let B = const(4)
+
+      let S = (A *u A) +u (B *u B)
+      let H = lift1(sqrt, S)
+
+      state psi = const(1.0)
+
+      read(H | psi)
+
+8.  Reference Execution Model (UNS_Runtime32_Spec)
+
+   (This section is summarized here; full details may be provided
+    in a companion document.)
+
+   * All scalar components are encoded as signed 32-bit integers
+     in Q16.16 fixed-point format.
+   * Complex numbers are pairs of Q16.16 components.
+   * UValues and UStates are arrays of length M of complex values
+     (and/or novel references).
+   * Readout is approximated by a finite sum over indices 0..M-1.
+   * Lifted operations run elementwise over arrays.
+   * Novel values are represented via a side table keyed by an
+     implementation-defined identifier.
+
+9.  Conformance Requirements
+
+   A conforming UNS implementation:
+
+   * MUST support the embedding of classical scalars as constant UValues.
+   * MUST implement readout as defined in Section 3.4.
+   * MUST provide lifted unary and binary operations for at least
+     basic arithmetic (+u, *u, *s, division).
+   * MUST treat classically undefined operations as producing novel
+     values rather than halting with an error.
+   * MUST support the ".unse" file format as defined in Section 7.
+   * SHOULD attempt to preserve dimensional invariance of readout
+     under admissible D(N, psi) transforms.
+
+10.  Security Considerations
+
+   UNS is a numerical framework and does not define any cryptographic
+   mechanisms. However, implementations need to consider:
+
+   * Overflow or underflow in fixed-point arithmetic.
+   * Resource exhaustion from extremely large microstate counts.
+   * Validation of untrusted ".unse" files to prevent denial-of-service
+     via pathological programs (e.g., deeply nested expressions).
+
+   The ".unse" format is textual and not directly executable by
+   operating systems, but UNS interpreters and IDEs MUST treat all
+   untrusted input as potentially hostile, following standard
+   secure coding practices.
+
+11.  IANA Considerations
+
+   This document has no IANA actions at this time. If a media type
+   specific to UNS expressions is desired in the future, a separate
+   registration document may be submitted.
+
+12.  References
+
+12.1.  Normative References
+
+   None.
+
+12.2.  Informative References
+
+   [Shapiro1997]
+              Shapiro, S., "Philosophy of Mathematics: Structure and
+              Ontology", Oxford University Press, 1997.
+
+   [Landry2007]
+              Landry, E., "Categories for the Working Philosopher",
+              Oxford University Press, 2007.
+
+Appendix A.  Rationale and Design Motivation
+
+   (Omitted here for brevity; see the standalone UNS design documents.)
+
+Appendix B.  Additional Examples
+
+   (Omitted here for brevity; see the UNS tutorials and examples.)
+
+Acknowledgements
+
+   The author thanks reviewers and early implementers who contributed
+   feedback on the UNS model and the .unse file format.
+
+Author's Address
+
+   R. Kimble
+   Email: reedkimble@live.com
+
