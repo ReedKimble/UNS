@@ -1,0 +1,4011 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Universal Number Set (UNS) Runtime Playground</title>
+  <style>
+    :root {
+      font-family: "Segoe UI", "Inter", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+      color: #e8ecff;
+      background: #0d111c;
+    }
+
+    body {
+      margin: 0;
+      background: radial-gradient(circle at top, #1c2340 0%, #05060b 55%);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    header {
+      padding: 1.5rem 2rem 0.5rem;
+    }
+
+    header h1 {
+      margin: 0;
+      font-size: 1.8rem;
+      letter-spacing: 0.04em;
+    }
+
+    header p {
+      margin: 0.25rem 0 0;
+      color: #96a3d9;
+    }
+
+    main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      padding: 1rem 2rem 2rem;
+      box-sizing: border-box;
+    }
+
+    .panel-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 1rem;
+      width: 100%;
+    }
+
+    .workspace {
+      flex: 1;
+      display: grid;
+      grid-template-columns: minmax(320px, var(--left-col, 60%)) 8px minmax(280px, 1fr);
+      gap: 0.75rem;
+      min-height: 0;
+      width: 100%;
+    }
+
+    .left-column,
+    .right-column {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      min-height: 0;
+    }
+
+    .right-column {
+      min-width: 280px;
+    }
+
+    .resizer {
+      width: 8px;
+      cursor: col-resize;
+      border-radius: 999px;
+      background: rgba(124, 142, 208, 0.3);
+      position: relative;
+    }
+
+    .resizer::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      background: linear-gradient(180deg, rgba(73, 198, 255, 0.4), rgba(92, 124, 250, 0.4));
+      opacity: 0;
+      transition: opacity 0.2s ease;
+    }
+
+    .resizer:hover::after,
+    .resizer.dragging::after {
+      opacity: 1;
+    }
+
+    .right-column .panel {
+      flex: 0 0 auto;
+    }
+
+    .left-column .panel.full-width,
+    .left-column .panel-grid {
+      flex: 1;
+      min-height: 0;
+    }
+
+    .panel {
+      background: rgba(13, 16, 33, 0.85);
+      border: 1px solid rgba(120, 146, 255, 0.25);
+      border-radius: 14px;
+      padding: 1rem;
+      box-shadow: 0 16px 40px rgba(5, 6, 11, 0.65);
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+    }
+
+    .panel.full-width {
+      grid-column: 1 / -1;
+      min-height: 240px;
+    }
+
+    .panel h2 {
+      margin: 0 0 0.75rem;
+      font-size: 1.1rem;
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+      color: #7dd7ff;
+    }
+
+    textarea {
+      width: 100%;
+      min-height: 220px;
+      resize: vertical;
+      border-radius: 10px;
+      border: 1px solid rgba(125, 215, 255, 0.25);
+      background: transparent;
+      color: transparent;
+      caret-color: #e8ecff;
+      padding: 0.75rem;
+      font-family: "Fira Code", Consolas, monospace;
+      font-size: 0.95rem;
+      line-height: 1.4;
+      box-sizing: border-box;
+    }
+
+    .code-editor {
+      position: relative;
+      width: 100%;
+    }
+
+    .code-editor pre {
+      margin: 0;
+      border-radius: 10px;
+      border: 1px solid rgba(125, 215, 255, 0.25);
+      background: #05060f;
+      color: #e8ecff;
+      padding: 0.75rem;
+      font-family: "Fira Code", Consolas, monospace;
+      font-size: 0.95rem;
+      line-height: 1.4;
+      overflow: auto;
+      min-height: 220px;
+      white-space: pre-wrap;
+      word-break: break-word;
+      pointer-events: none;
+    }
+
+    .code-editor textarea {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      width: 100%;
+      height: 100%;
+      color: transparent;
+      background: transparent;
+      border: none;
+      resize: none;
+      overflow: auto;
+    }
+
+    .code-editor textarea:focus {
+      outline: none;
+    }
+
+    .code-editor[data-empty="true"] pre::before {
+      content: attr(data-placeholder);
+      color: rgba(149, 163, 217, 0.5);
+    }
+
+    .token-keyword { color: #7dd7ff; }
+    .token-identifier { color: #d2d8f6; }
+    .token-number { color: #7dffa2; }
+    .token-operator { color: #ffc87a; }
+    .token-comment { color: #6c789f; }
+    .token-error { background: rgba(255, 99, 132, 0.2); }
+
+    button {
+      padding: 0.55rem 1.15rem;
+      font-size: 0.85rem;
+      background: linear-gradient(120deg, #5c7cfa, #49c6ff 70%);
+      color: #05060f;
+      font-weight: 600;
+      border: 1px solid rgba(125, 215, 255, 0.4);
+      border-radius: 999px;
+      cursor: pointer;
+      box-shadow: 0 10px 25px rgba(73, 198, 255, 0.25);
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    button.secondary {
+      background: rgba(124, 142, 208, 0.25);
+      color: #c9d7ff;
+      border-color: rgba(124, 142, 208, 0.45);
+      box-shadow: none;
+    }
+
+    button:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 14px 28px rgba(73, 198, 255, 0.35);
+    }
+
+    .controls {
+      margin-top: 0.75rem;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .button-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+
+    .cursor-status {
+      font-size: 0.85rem;
+      letter-spacing: 0.03em;
+      color: #96a3d9;
+      min-width: 120px;
+      text-align: right;
+    }
+
+    .microstate-control {
+      margin-top: 0.75rem;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      align-items: center;
+    }
+
+    .microstate-control label {
+      font-size: 0.82rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #9fb7ff;
+    }
+
+    .microstate-control input {
+      width: 120px;
+      padding: 0.4rem 0.5rem;
+      border-radius: 8px;
+      border: 1px solid rgba(125, 215, 255, 0.3);
+      background: #05060f;
+      color: #e8ecff;
+      font-family: inherit;
+    }
+
+    .microstate-hint {
+      font-size: 0.8rem;
+      color: #96a3d9;
+    }
+
+    pre {
+      background: #05060f;
+      border-radius: 10px;
+      padding: 0.75rem;
+      font-family: "Fira Code", Consolas, monospace;
+      font-size: 0.85rem;
+      color: #d2d8f6;
+      line-height: 1.45;
+      overflow: auto;
+      flex: 1;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.85rem;
+    }
+
+    th, td {
+      text-align: left;
+      padding: 0.4rem 0.35rem;
+      border-bottom: 1px solid rgba(124, 142, 208, 0.2);
+    }
+
+    th {
+      color: #9fb7ff;
+      font-weight: 600;
+    }
+
+    .summary-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+      padding: 0.15rem 0.55rem;
+      border-radius: 999px;
+      font-size: 0.75rem;
+      background: rgba(124, 142, 208, 0.15);
+    }
+
+    .output-line {
+      font-family: "Fira Code", Consolas, monospace;
+      font-size: 1rem;
+      padding: 0.35rem 0;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      padding: 0.15rem 0.5rem;
+      border-radius: 999px;
+      font-size: 0.75rem;
+      letter-spacing: 0.02em;
+    }
+
+    .kind-scalar { background: rgba(93, 253, 197, 0.2); color: #5dfdc5; }
+    .kind-uvalue { background: rgba(255, 200, 122, 0.25); color: #ffc87a; }
+    .kind-ustate { background: rgba(125, 215, 255, 0.2); color: #7dd7ff; }
+
+    .read-controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      align-items: center;
+      margin-top: 0.75rem;
+    }
+
+    select {
+      flex: 1;
+      min-width: 140px;
+      padding: 0.4rem 0.5rem;
+      border-radius: 8px;
+      border: 1px solid rgba(125, 215, 255, 0.3);
+      background: #05060f;
+      color: #e8ecff;
+      font-family: inherit;
+    }
+
+    .read-result {
+      margin-top: 0.35rem;
+      font-size: 0.9rem;
+      color: #96f7d2;
+    }
+
+    .status {
+      font-size: 0.85rem;
+      color: #ff9f7d;
+    }
+
+    .table-wrapper {
+      overflow: auto;
+    }
+
+    .keyword-panel {
+      margin-top: 1rem;
+      border: 1px solid rgba(125, 215, 255, 0.2);
+      border-radius: 10px;
+      padding: 0.75rem;
+      background: rgba(5, 6, 15, 0.7);
+    }
+
+    .keyword-panel details {
+      margin: 0.25rem 0;
+    }
+
+    .keyword-panel summary {
+      cursor: pointer;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+      color: #9fb7ff;
+    }
+
+    .keyword-list {
+      list-style: none;
+      padding-left: 1rem;
+      margin: 0.35rem 0 0;
+      color: #cfd8ff;
+      font-size: 0.9rem;
+    }
+
+    .keyword-list li {
+      margin: 0.15rem 0;
+    }
+
+    .keyword-note {
+      margin: 0.5rem 0 0;
+      font-size: 0.85rem;
+      color: #a9b8ff;
+      line-height: 1.4;
+    }
+
+    .keyword-note code {
+      background: rgba(124, 142, 208, 0.2);
+      padding: 0.05rem 0.3rem;
+      border-radius: 6px;
+      font-size: 0.85rem;
+    }
+
+    .example-panel,
+    .doc-panel {
+      margin-top: 1rem;
+      border: 1px solid rgba(125, 215, 255, 0.2);
+      border-radius: 10px;
+      padding: 0.75rem;
+      background: rgba(6, 8, 18, 0.8);
+    }
+
+    .example-panel h3,
+    .doc-panel h3 {
+      margin: 0 0 0.5rem;
+      font-size: 0.95rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: #9fb7ff;
+    }
+
+    .example-row {
+      display: flex;
+      gap: 0.5rem;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .example-hint {
+      margin: 0.5rem 0 0;
+      font-size: 0.8rem;
+      color: #96a3d9;
+    }
+
+    .doc-panel details {
+      margin: 0.25rem 0;
+    }
+
+    .doc-panel summary {
+      cursor: pointer;
+      color: #7dd7ff;
+      font-weight: 600;
+      letter-spacing: 0.03em;
+    }
+
+    .doc-panel p {
+      margin: 0.35rem 0 0;
+      font-size: 0.85rem;
+      color: #d2d8f6;
+      line-height: 1.4;
+    }
+
+    .simplex-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 0.65rem;
+    }
+
+    .simplex-panel label {
+      font-size: 0.85rem;
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+      color: #9fb7ff;
+    }
+
+    .simplex-panel textarea,
+    .simplex-panel input[type="number"] {
+      width: 100%;
+      min-height: 80px;
+      border-radius: 10px;
+      border: 1px solid rgba(125, 215, 255, 0.3);
+      background: #05060f;
+      color: #e8ecff;
+      padding: 0.6rem;
+      font-family: "Fira Code", Consolas, monospace;
+      font-size: 0.9rem;
+      box-sizing: border-box;
+      resize: vertical;
+    }
+
+    .simplex-panel input[type="number"] {
+      height: 44px;
+    }
+
+    .simplex-panel textarea::placeholder,
+    .simplex-panel input::placeholder {
+      color: rgba(149, 163, 217, 0.65);
+    }
+
+    .simplex-panel pre {
+      min-height: 96px;
+      margin: 0;
+    }
+
+    .simplex-field {
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+    }
+
+    .diagnostic-panel pre {
+      min-height: 120px;
+    }
+
+    .diagnostic-plot {
+      width: 100%;
+      height: 160px;
+      border-radius: 10px;
+      border: 1px solid rgba(125, 215, 255, 0.2);
+      background: #05060f;
+      margin-top: 0.75rem;
+    }
+
+    .panel.collapsible {
+      padding: 0.75rem 1rem 1rem;
+    }
+
+    .panel.collapsible .panel-body {
+      margin-top: 0.75rem;
+    }
+
+    .panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.5rem;
+    }
+
+    .panel-header h2 {
+      margin: 0;
+    }
+
+    .panel-body[hidden] {
+      display: none;
+    }
+
+    .collapse-btn {
+      border: 1px solid rgba(125, 215, 255, 0.4);
+      background: rgba(9, 12, 26, 0.6);
+      color: #c9d7ff;
+      border-radius: 999px;
+      padding: 0.25rem 0.75rem;
+      font-size: 0.8rem;
+      cursor: pointer;
+    }
+
+    .collapse-btn:hover {
+      border-color: rgba(125, 215, 255, 0.8);
+      color: #7dd7ff;
+    }
+
+    .inspector-panel label {
+      display: block;
+      font-size: 0.85rem;
+      color: #9fb7ff;
+      margin-bottom: 0.25rem;
+    }
+
+    .inspect-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 1rem;
+    }
+
+    .inspect-row {
+      display: flex;
+      gap: 0.5rem;
+      align-items: center;
+      margin-bottom: 0.35rem;
+    }
+
+    .inspect-output {
+      min-height: 88px;
+      font-size: 0.8rem;
+      background: rgba(5, 6, 15, 0.8);
+    }
+
+    .novel-panel label {
+      margin-bottom: 0.35rem;
+    }
+
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      border: 0;
+    }
+
+    @media (max-width: 720px) {
+      main {
+        padding: 1rem;
+      }
+      .workspace {
+        grid-template-columns: 1fr;
+      }
+      .resizer {
+        display: none;
+      }
+      .right-column {
+        order: 3;
+      }
+      .left-column {
+        order: 1;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Universal Number Set (UNS) Runtime Playground</h1>
+    <p>Machine-first UNS model, VM, and editor with live execution, value tracking, expression trees, and debug telemetry.</p>
+  </header>
+  <main>
+    <div class="workspace" id="workspaceLayout">
+      <div class="left-column" id="leftColumn">
+        <section class="panel editor">
+      <h2>Editor</h2>
+      <label for="unsSource" class="sr-only">UNS Source Program</label>
+      <div class="code-editor">
+        <pre id="highlightLayer" aria-hidden="true"></pre>
+        <textarea id="unsSource" spellcheck="false" placeholder="Type UNS code here"></textarea>
+      </div>
+      <div class="controls">
+        <div class="button-row">
+          <button id="runBtn">Compile &amp; Run</button>
+          <button id="sampleBtn" class="secondary">Sample Program</button>
+          <button id="clearBtn" class="secondary">Clear</button>
+        </div>
+        <span id="cursorStatus" class="cursor-status" aria-live="polite">Line 1, Col 1</span>
+      </div>
+      <div class="microstate-control">
+        <label for="microstateCount">Microstates</label>
+        <input type="number" id="microstateCount" min="8" max="32768" step="8" />
+        <span class="microstate-hint">Adjust capacity (auto-saved per browser)</span>
+      </div>
+      <div class="keyword-panel">
+        <details open>
+          <summary>Core Keywords</summary>
+          <ul class="keyword-list">
+            <li>let</li>
+            <li>state</li>
+            <li>const</li>
+            <li>read</li>
+            <li>lift1</li>
+            <li>lift2</li>
+            <li>D</li>
+            <li>true</li>
+            <li>false</li>
+          </ul>
+        </details>
+        <details open>
+          <summary>Scalar Helpers (lift1)</summary>
+          <ul class="keyword-list">
+            <li><code>index</code> — returns microstate index as scalar</li>
+            <li><code>isPrime</code> — 1 if integer input is prime</li>
+            <li><code>windowWeight_CENTER_WIDTH</code> — e.g. <code>windowWeight_3_4</code> for sliding windows</li>
+          </ul>
+        </details>
+        <details>
+          <summary>Lift Function Catalog</summary>
+          <ul class="keyword-list">
+            <li><strong>lift1</strong>: <code>sqrt</code>, <code>sin</code>, <code>cos</code>, <code>log</code>, <code>abs</code>, <code>conj</code>, scalar helpers above</li>
+            <li><strong>lift2</strong>: <code>divide</code>, <code>pow</code>, <code>blend</code>, <code>lt</code>, <code>gt</code>, <code>eq</code>, <code>ge</code>, <code>le</code></li>
+          </ul>
+        </details>
+        <details open>
+          <summary>Aggregate Helpers</summary>
+          <ul class="keyword-list">
+            <li><code>psi_uniform()</code>, <code>uniform_state()</code>, <code>state(uvalue)</code>, <code>delta_state(i)</code></li>
+            <li><code>assemble {i: value}</code>, <code>inject(value, index, M)</code>, <code>collection(...)</code>, <code>uvalue_of({...})</code></li>
+            <li><code>mean</code>/<code>meanU</code>, <code>sumU</code>, <code>integrate</code>, <code>variance</code>/<code>varianceU</code>, <code>stddevU</code>, <code>smoothness</code></li>
+            <li><code>densityU</code>, <code>state_from_mask</code>, comparison masks (<code>mask_lt</code>/<code>gt</code>/<code>eq</code>), and <code>frac(a, b)</code></li>
+            <li><code>printU</code> streams per-microstate values; <code>plotU</code> renders inline charts.</li>
+          </ul>
+        </details>
+        <details>
+          <summary>Reserved (future)</summary>
+          <ul class="keyword-list">
+            <li>novel</li>
+            <li>uvalue</li>
+            <li>ustate</li>
+            <li>scalar</li>
+            <li>fn</li>
+            <li>type</li>
+          </ul>
+        </details>
+      </div>
+      <div class="example-panel">
+        <h3>Example Scripts</h3>
+        <div class="example-row">
+          <select id="exampleSelect" aria-label="Example scripts"></select>
+          <button type="button" id="loadExampleBtn">Load Example</button>
+        </div>
+        <p class="example-hint">Examples drop directly into the editor without overwriting your clipboard.</p>
+      </div>
+      <div class="doc-panel">
+        <h3>UNS Collections &amp; Aggregates</h3>
+        <details open>
+          <summary>Collections, Aggregates, and Integrations in UNS</summary>
+          <p><code>assemble {i: value}</code> and <code>inject(value, index, M?)</code> build sparse signals quickly, while <code>psi_uniform()</code> and <code>state(uvalue)</code> normalize states for immediate use. Pair them with <code>meanU</code>, <code>sumU</code>, <code>varianceU</code>, and <code>stddevU</code> to fold functions via <code>read(f | psi)</code>. Use <code>printU</code> for textual diagnostics and <code>plotU</code> to visualize magnitudes.</p>
+        </details>
+        <details open>
+          <summary>Collections in UNS</summary>
+          <p>Use <code>uvalue_of({index: expr})</code> for sparse spikes or <code>collection(a0, a1, ...)</code> for ordered samples. Scalars auto-lift to UValues.</p>
+        </details>
+        <details open>
+          <summary>Aggregates via readout</summary>
+          <p><code>read(f | psi)</code> and helpers (<code>integrate</code>, <code>mean</code>, <code>variance</code>, <code>smoothness</code>) evaluate expectations without manual loops.</p>
+        </details>
+        <details>
+          <summary>Masks &amp; states</summary>
+          <p><code>uniform_state()</code>, <code>delta_state(i)</code>, <code>state_range(start, end)</code>, and <code>mask_range(start, end)</code> cover common support shapes. Combine with <code>mask_threshold(f, threshold)</code> and comparison lifts (<code>lt</code>, <code>gt</code>, <code>eq</code>, <code>ge</code>, <code>le</code>).</p>
+        </details>
+        <details>
+          <summary>Integrations as readout</summary>
+          <p><code>integrate(f, psi)</code> is equivalent to <code>read(f | psi)</code>; <code>mean(f)</code> defaults to <code>uniform_state()</code>. Mix <code>densityU</code>, <code>meanU</code>, and <code>varianceU</code> for weighted stats.</p>
+        </details>
+        <details>
+          <summary>D-transform invariance</summary>
+          <p>Apply <code>D(k, psi)</code> for symmetry exploration. Compare <code>read</code> values before/after transforms or inspect per-microstate amplitudes via the inspection tools.</p>
+        </details>
+        <details>
+          <summary>Collection helpers</summary>
+          <p>Blend <code>collection</code>, <code>uvalue_of</code>, <code>mask_range</code>, and <code>delta_state</code> to seed structured signals, then smooth with <code>smoothness(f)</code> or build densities.</p>
+        </details>
+        <details>
+          <summary>New built-ins</summary>
+          <p><code>frac(a,b)</code> expands to <code>lift2(divide, a, b)</code>. Comparison lifts plus helper states unlock <code>mask_threshold</code> workflows without manual loops.</p>
+        </details>
+        <details open>
+          <summary>Simplex operator toolkit</summary>
+          <p>The simplex operators (<code>NORM</code>, <code>MIX</code>, <code>MERGE</code>, <code>SPLIT</code>, <code>CANCEL</code>, <code>CANCEL_JOINT</code>, <code>MASK</code>, <code>PROJECT</code>, <code>OVERLAP</code>, <code>DOT</code>, <code>DIST_L1</code>) preserve the UNS simplex definition. Try them interactively via the <strong>Simplex Toolkit</strong> panel in the right column.</p>
+          <ul class="keyword-list">
+            <li><code>NORM(x)</code> resales any nonnegative vector to the simplex (uniform fallback on zero).</li>
+            <li><code>MIX(u,v;&alpha;)</code> clamps <code>&alpha;</code> to [0,1] before mixing.</li>
+            <li><code>MERGE</code>/<code>SPLIT</code> convert between weighted families and standalone UNS elements.</li>
+            <li><code>CANCEL</code>/<code>CANCEL_JOINT</code> remove shared support using <code>OVERLAP</code> then renormalize.</li>
+            <li><code>MASK</code>/<code>PROJECT</code> restrict components and call <code>NORM</code> automatically.</li>
+            <li><code>DOT</code> and <code>DIST_L1</code> are read-only observables confined to [0,1].</li>
+          </ul>
+        </details>
+      </div>
+      </section>
+      <div class="panel-grid">
+        <section class="panel collapsible" data-collapsible>
+          <div class="panel-header">
+            <h2>Expression Tree</h2>
+            <button type="button" class="collapse-btn" aria-expanded="true" aria-controls="expressionPanelBody">Collapse</button>
+          </div>
+          <div class="panel-body" id="expressionPanelBody">
+            <pre id="astView">// AST will appear here</pre>
+          </div>
+        </section>
+
+        <section class="panel collapsible" data-collapsible>
+          <div class="panel-header">
+            <h2>Debug Log</h2>
+            <button type="button" class="collapse-btn" aria-expanded="true" aria-controls="debugLogBody">Collapse</button>
+          </div>
+          <div class="panel-body" id="debugLogBody">
+            <pre id="debugLog">// logs will appear here</pre>
+          </div>
+        </section>
+      </div>
+      </div>
+      <div class="resizer" id="columnResizer" role="separator" aria-orientation="vertical" aria-label="Resize editor and data panels"></div>
+      <div class="right-column" id="dataPanel">
+        <section class="panel">
+          <h2>Execution Result</h2>
+          <div id="output" class="output-line">Waiting for execution…</div>
+          <div id="status" class="status"></div>
+          <div id="readTester" class="read-controls"></div>
+          <div class="read-result" id="readResult"></div>
+        </section>
+
+        <section class="panel collapsible" data-collapsible>
+          <div class="panel-header">
+            <h2>Value Tracker</h2>
+            <button type="button" class="collapse-btn" aria-expanded="true" aria-controls="valueTrackerBody">Collapse</button>
+          </div>
+          <div class="panel-body" id="valueTrackerBody">
+            <div class="table-wrapper">
+              <table id="valueTable">
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>Kind</th>
+                    <th>Summary</th>
+                  </tr>
+                </thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel full-width inspector-panel" id="inspectorPanel">
+          <h2>Inspection Tools</h2>
+          <div class="inspect-grid">
+            <div>
+              <label for="inspectUValueSelect">UValue bindings</label>
+              <div class="inspect-row">
+                <select id="inspectUValueSelect"></select>
+                <button type="button" class="secondary" id="inspectUValueBtn">Inspect UValue</button>
+              </div>
+              <pre id="inspectUValueOutput" class="inspect-output">Select a UValue to view amplitudes.</pre>
+            </div>
+            <div>
+              <label for="inspectUStateSelect">UState bindings</label>
+              <div class="inspect-row">
+                <select id="inspectUStateSelect"></select>
+                <button type="button" class="secondary" id="inspectUStateBtn">Inspect UState</button>
+              </div>
+              <pre id="inspectUStateOutput" class="inspect-output">Select a UState to view |psi|^2 weights.</pre>
+            </div>
+            <div class="novel-panel">
+              <label>Novel values</label>
+              <pre id="novelInspector" class="inspect-output">No novel values recorded.</pre>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel collapsible" data-collapsible id="simplexPanel">
+          <div class="panel-header">
+            <h2>Simplex Toolkit</h2>
+            <button type="button" class="collapse-btn" aria-expanded="true" aria-controls="simplexPanelBody">Collapse</button>
+          </div>
+          <div class="panel-body simplex-panel" id="simplexPanelBody">
+            <div class="simplex-field">
+              <label for="simplexOperatorSelect">Operator</label>
+              <select id="simplexOperatorSelect" aria-label="Simplex operator"></select>
+            </div>
+            <div id="simplexOperatorInputs" class="simplex-operator-inputs"></div>
+            <button type="button" id="runSimplexOperatorBtn">Run Helper</button>
+            <pre id="simplexOperatorResult">Select an operator to see the result.</pre>
+            <p class="microstate-hint" id="simplexOperatorHint">Vectors expect JSON arrays (e.g., <code>[0.2, 0.3, 0.5]</code>).</p>
+          </div>
+        </section>
+
+        <section class="panel collapsible diagnostic-panel" data-collapsible>
+          <div class="panel-header">
+            <h2>Diagnostics</h2>
+            <button type="button" class="collapse-btn" aria-expanded="true" aria-controls="diagnosticPanelBody">Collapse</button>
+          </div>
+          <div class="panel-body" id="diagnosticPanelBody">
+            <pre id="diagnosticPrint">printU(...) output will appear here.</pre>
+            <canvas id="diagnosticPlot" class="diagnostic-plot" width="640" height="180" aria-label="plotU output"></canvas>
+          </div>
+        </section>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    (() => {
+      const SCALE = 65536;
+      const KEYWORDS = new Set(["let", "state", "const", "read", "lift1", "lift2", "D", "true", "false"]);
+      const RESERVED = new Set(["novel", "uvalue", "ustate", "scalar", "fn", "type"]);
+      const HELPER_SPECS = {
+        uniform_state: { returnType: 'ustate', required: [], optional: [] },
+        psi_uniform: { returnType: 'ustate', required: [], optional: [] },
+        delta_state: { returnType: 'ustate', required: ['scalar'], optional: [] },
+        state: { returnType: 'ustate', required: ['uvalue'], optional: [] },
+        state_from_mask: { returnType: 'ustate', required: ['uvalue'], optional: [] },
+        state_range: { returnType: 'ustate', required: ['scalar', 'scalar'], optional: [] },
+        mask_range: { returnType: 'uvalue', required: ['scalar', 'scalar'], optional: [] },
+        mask_threshold: { returnType: 'uvalue', required: ['uvalue', 'uvalue'], optional: [] },
+        mask_lt: { returnType: 'uvalue', required: ['uvalue', 'uvalue'], optional: [] },
+        mask_gt: { returnType: 'uvalue', required: ['uvalue', 'uvalue'], optional: [] },
+        mask_eq: { returnType: 'uvalue', required: ['uvalue', 'uvalue'], optional: [] },
+        collection: { returnType: 'uvalue', required: [], optional: [], variadicType: 'uvalue' },
+        inject: { returnType: 'uvalue', required: ['scalarOrUValue', 'scalar'], optional: ['scalar'] },
+        meanU: { returnType: 'scalar', required: ['uvalue'], optional: ['stateLike'] },
+        sumU: { returnType: 'scalar', required: ['uvalue'], optional: ['stateLike'] },
+        integralU: { returnType: 'scalar', required: ['uvalue'], optional: ['stateLike'] },
+        varianceU: { returnType: 'scalar', required: ['uvalue'], optional: ['stateLike'] },
+        variance: { returnType: 'scalar', required: ['uvalue', 'stateLike'], optional: [] },
+        stddevU: { returnType: 'scalar', required: ['uvalue'], optional: ['stateLike'] },
+        stdU: { returnType: 'scalar', required: ['uvalue'], optional: ['stateLike'] },
+        densityU: { returnType: 'scalar', required: ['uvalue'], optional: ['stateLike'] },
+        integrate: { returnType: 'scalar', required: ['uvalue', 'stateLike'], optional: [] },
+        mean: { returnType: 'scalar', required: ['uvalue'], optional: [] },
+        smoothness: { returnType: 'scalar', required: ['uvalue'], optional: [] },
+        absU: { returnType: 'uvalue', required: ['uvalue'], optional: [] },
+        negU: { returnType: 'uvalue', required: ['uvalue'], optional: [] },
+        sqrtU: { returnType: 'uvalue', required: ['uvalue'], optional: [] },
+        normU: { returnType: 'uvalue', required: ['uvalue'], optional: [] },
+        addU: { returnType: 'uvalue', required: ['uvalue', 'uvalue'], optional: [] },
+        subU: { returnType: 'uvalue', required: ['uvalue', 'uvalue'], optional: [] },
+        mulU: { returnType: 'uvalue', required: ['uvalue', 'uvalue'], optional: [] },
+        divU: { returnType: 'uvalue', required: ['uvalue', 'uvalue'], optional: [] },
+        powU: { returnType: 'uvalue', required: ['uvalue', 'uvalue'], optional: [] },
+        printU: { returnType: 'void', required: ['uvalue'], optional: [] },
+        plotU: { returnType: 'void', required: ['uvalue'], optional: [] }
+      };
+      const PRECEDENCE = { "+u": 1, "*u": 2, "*s": 2 };
+      const HELPER_CALLS = new Set([...Object.keys(HELPER_SPECS), 'uvalue_of', 'frac']);
+      const UNSOperators = (() => {
+        const EPS = 1e-12;
+        const SUM_TOLERANCE = 1e-9;
+
+        const toArray = (vector, label = 'vector') => {
+          if (Array.isArray(vector)) return vector.map(Number);
+          if (ArrayBuffer.isView(vector)) return Array.from(vector, Number);
+          throw new Error(`Expected array-like for ${label}`);
+        };
+
+        const ensureSameLength = (a, b, labelA = 'a', labelB = 'b') => {
+          if (a.length !== b.length) {
+            throw new Error(`${labelA} and ${labelB} must have equal length`);
+          }
+        };
+
+        const assertNonNegative = (vec, label) => {
+          if (vec.some(v => v < -EPS)) {
+            throw new Error(`${label} must be nonnegative`);
+          }
+        };
+
+        const sum = (vec) => vec.reduce((acc, v) => acc + v, 0);
+
+        const uniform = (dim) => {
+          if (dim <= 0) throw new Error('Dimension must be positive');
+          const value = 1 / dim;
+          return Array(dim).fill(value);
+        };
+
+        const clampAlpha = (alpha) => {
+          if (!Number.isFinite(alpha)) return 0;
+          return Math.min(1, Math.max(0, alpha));
+        };
+
+        const normalize = (vector) => {
+          const arr = toArray(vector, 'NORM input');
+          assertNonNegative(arr, 'NORM input');
+          const total = sum(arr);
+          if (total > EPS) {
+            return arr.map(v => v / total);
+          }
+          return uniform(arr.length);
+        };
+
+        const overlap = (u, v) => {
+          const a = toArray(u, 'OVERLAP u');
+          const b = toArray(v, 'OVERLAP v');
+          ensureSameLength(a, b, 'u', 'v');
+          return a.map((value, idx) => Math.min(value, b[idx]));
+        };
+
+        const subtract = (a, b) => a.map((value, idx) => {
+          const diff = value - b[idx];
+          return diff < 0 && Math.abs(diff) < 1e-14 ? 0 : Math.max(0, diff);
+        });
+
+        const addVectors = (vectors) => {
+          const dim = vectors[0].length;
+          const acc = Array(dim).fill(0);
+          vectors.forEach(vec => {
+            vec.forEach((value, idx) => {
+              acc[idx] += value;
+            });
+          });
+          return acc;
+        };
+
+        const renormResidual = (vec) => {
+          const total = sum(vec);
+          if (total > EPS) return vec.map(v => v / total);
+          return uniform(vec.length);
+        };
+
+        const mix = (u, v, alpha) => {
+          const a = toArray(u, 'MIX u');
+          const b = toArray(v, 'MIX v');
+          ensureSameLength(a, b, 'u', 'v');
+          assertNonNegative(a, 'MIX u');
+          assertNonNegative(b, 'MIX v');
+          const clamped = clampAlpha(alpha ?? 0);
+          return a.map((value, idx) => (clamped * value) + ((1 - clamped) * b[idx]));
+        };
+
+        const merge = (vectors, weights) => {
+          if (!Array.isArray(vectors) || vectors.length === 0) {
+            throw new Error('MERGE requires at least one vector');
+          }
+          const arrays = vectors.map((vec, idx) => toArray(vec, `MERGE input ${idx}`));
+          const dim = arrays[0].length;
+          arrays.forEach((arr, idx) => {
+            if (arr.length !== dim) throw new Error(`MERGE input ${idx} has mismatched dimension`);
+            assertNonNegative(arr, `MERGE input ${idx}`);
+          });
+          const normalizedWeights = (weights ?? []).map((w, idx) => {
+            if (w === undefined) return 1;
+            if (w < 0) throw new Error(`MERGE weight ${idx} must be nonnegative`);
+            return w;
+          });
+          const coeffs = arrays.map((_, idx) => normalizedWeights[idx] ?? 1);
+          if (coeffs.every(weight => weight <= EPS)) {
+            return uniform(dim);
+          }
+          const accumulator = Array(dim).fill(0);
+          arrays.forEach((arr, idx) => {
+            const weight = coeffs[idx];
+            arr.forEach((value, j) => {
+              accumulator[j] += weight * value;
+            });
+          });
+          return normalize(accumulator);
+        };
+
+        const split = (u, alphas) => {
+          const base = toArray(u, 'SPLIT input');
+          assertNonNegative(base, 'SPLIT input');
+          if (!Array.isArray(alphas) || alphas.length === 0) {
+            throw new Error('SPLIT requires coefficient array');
+          }
+          const totalAlpha = sum(alphas);
+          if (Math.abs(totalAlpha - 1) > SUM_TOLERANCE) {
+            throw new Error('SPLIT coefficients must sum to 1');
+          }
+          return alphas.map((alpha, idx) => {
+            if (alpha < -EPS) throw new Error(`SPLIT alpha ${idx} must be nonnegative`);
+            return base.map(value => alpha * value);
+          });
+        };
+
+        const cancel = (u, v) => {
+          const a = toArray(u, 'CANCEL u');
+          const b = toArray(v, 'CANCEL v');
+          ensureSameLength(a, b, 'u', 'v');
+          assertNonNegative(a, 'CANCEL u');
+          assertNonNegative(b, 'CANCEL v');
+          const w = overlap(a, b);
+          const uRaw = subtract(a, w);
+          const vRaw = subtract(b, w);
+          return [renormResidual(uRaw), renormResidual(vRaw)];
+        };
+
+        const cancelJoint = (u, v) => {
+          const a = toArray(u, 'CANCEL_JOINT u');
+          const b = toArray(v, 'CANCEL_JOINT v');
+          ensureSameLength(a, b, 'u', 'v');
+          const w = overlap(a, b);
+          const uRaw = subtract(a, w);
+          const vRaw = subtract(b, w);
+          const residual = addVectors([uRaw, vRaw]);
+          return renormResidual(residual);
+        };
+
+        const mask = (u, maskVector) => {
+          const base = toArray(u, 'MASK input');
+          const maskArr = toArray(maskVector, 'MASK mask');
+          ensureSameLength(base, maskArr, 'u', 'mask');
+          assertNonNegative(base, 'MASK input');
+          assertNonNegative(maskArr, 'MASK mask');
+          const attenuated = base.map((value, idx) => value * maskArr[idx]);
+          return normalize(attenuated);
+        };
+
+        const project = (u, subset) => {
+          const indices = new Set(subset ?? []);
+          const base = toArray(u, 'PROJECT input');
+          const maskVector = base.map((_, idx) => (indices.has(idx) ? 1 : 0));
+          return mask(base, maskVector);
+        };
+
+        const dot = (u, v) => {
+          const a = toArray(u, 'DOT u');
+          const b = toArray(v, 'DOT v');
+          ensureSameLength(a, b, 'u', 'v');
+          return Math.min(1, Math.max(0, a.reduce((acc, value, idx) => acc + value * b[idx], 0)));
+        };
+
+        const distL1 = (u, v) => {
+          const a = toArray(u, 'DIST_L1 u');
+          const b = toArray(v, 'DIST_L1 v');
+          ensureSameLength(a, b, 'u', 'v');
+          const total = a.reduce((acc, value, idx) => acc + Math.abs(value - b[idx]), 0);
+          return Math.min(1, Math.max(0, 0.5 * total));
+        };
+
+        const checkSimplex = (vec, label) => {
+          assertNonNegative(vec, label);
+          const total = sum(vec);
+          if (Math.abs(total - 1) > 5 * SUM_TOLERANCE) {
+            throw new Error(`${label} must sum to 1 (was ${total})`);
+          }
+        };
+
+        const approxEqualVec = (a, b) => {
+          if (a.length !== b.length) return false;
+          return a.every((value, idx) => Math.abs(value - b[idx]) <= 5 * SUM_TOLERANCE);
+        };
+
+        const runSelfTests = () => {
+          const report = [];
+          const record = (name, fn) => {
+            try {
+              fn();
+              report.push({ name, status: 'ok' });
+            } catch (err) {
+              report.push({ name, status: 'fail', message: err.message });
+              throw err;
+            }
+          };
+
+          record('NORM invariants', () => {
+            const u = [0.2, 0.3, 0.5];
+            const normalized = normalize(u);
+            checkSimplex(normalized, 'NORM(u)');
+            const zero = normalize([0, 0, 0, 0]);
+            checkSimplex(zero, 'NORM(0)');
+          });
+
+          record('MIX invariants', () => {
+            const u = [0.7, 0.3];
+            const v = [0.5, 0.5];
+            const mixed = mix(u, v, 0.4);
+            checkSimplex(mixed, 'mix result');
+          });
+
+          record('MERGE invariants', () => {
+            const u = [0.6, 0.2, 0.2];
+            const v = [0.1, 0.3, 0.6];
+            const merged = merge([u, v], [2, 1]);
+            checkSimplex(merged, 'MERGE result');
+          });
+
+          record('SPLIT coefficients', () => {
+            const base = [0.5, 0.5];
+            const parts = split(base, [0.25, 0.75]);
+            if (parts.length !== 2) throw new Error('SPLIT returned wrong count');
+            const sums = parts.map(sum);
+            if (Math.abs(sums[0] - 0.25) > SUM_TOLERANCE) throw new Error('First split sum incorrect');
+            if (Math.abs(sums[1] - 0.75) > SUM_TOLERANCE) throw new Error('Second split sum incorrect');
+          });
+
+          record('CANCEL symmetry', () => {
+            const u = [0.6, 0.4];
+            const v = [0.5, 0.5];
+            const [u1, v1] = cancel(u, v);
+            const [v2, u2] = cancel(v, u);
+            if (!approxEqualVec(u1, u2) || !approxEqualVec(v1, v2)) {
+              throw new Error('CANCEL residuals not symmetric');
+            }
+            checkSimplex(u1, 'CANCEL u residual');
+            checkSimplex(v1, 'CANCEL v residual');
+          });
+
+          record('CANCEL_JOINT invariants', () => {
+            const u = [0.3, 0.7];
+            const v = [0.8, 0.2];
+            const joint = cancelJoint(u, v);
+            checkSimplex(joint, 'CANCEL_JOINT result');
+          });
+
+          record('MASK and PROJECT', () => {
+            const u = [0.1, 0.4, 0.5];
+            const masked = mask(u, [1, 0.5, 0]);
+            checkSimplex(masked, 'MASK result');
+            const projected = project(u, [0, 2]);
+            checkSimplex(projected, 'PROJECT result');
+            if (projected[1] !== projected[1]) {
+              throw new Error('PROJECT produced NaN');
+            }
+          });
+
+          record('Metric bounds', () => {
+            const u = [0.9, 0.1];
+            const v = [0.2, 0.8];
+            const s = dot(u, v);
+            const d = distL1(u, v);
+            if (s < -SUM_TOLERANCE || s > 1 + SUM_TOLERANCE) throw new Error('DOT out of bounds');
+            if (d < -SUM_TOLERANCE || d > 1 + SUM_TOLERANCE) throw new Error('DIST_L1 out of bounds');
+          });
+
+          return report;
+        };
+
+        const api = {
+          EPSILON: EPS,
+          NORM: normalize,
+          MIX: mix,
+          MERGE: merge,
+          SPLIT: split,
+          CANCEL: cancel,
+          CANCEL_JOINT: cancelJoint,
+          MASK: mask,
+          PROJECT: project,
+          OVERLAP: overlap,
+          DOT: dot,
+          DIST_L1: distL1,
+          runSelfTests
+        };
+
+        const selfTestStatus = (() => {
+          try {
+            return { ok: true, report: runSelfTests() };
+          } catch (err) {
+            return { ok: false, error: err };
+          }
+        })();
+
+        if (typeof window !== 'undefined') {
+          window.UNSOperators = api;
+          window.UNSOperatorTestReport = selfTestStatus;
+        }
+
+        if (selfTestStatus.ok) {
+          console.info('UNS operator self-tests passed', selfTestStatus.report);
+        } else {
+          console.error('UNS operator self-tests failed', selfTestStatus.error);
+        }
+
+        return api;
+      })();
+      const SIMPLEX_OPERATOR_SPECS = [
+        {
+          key: 'NORM',
+          label: 'NORM — Normalize vector',
+          description: 'Rescales any nonnegative vector to the simplex (uniform fallback when the sum is zero).',
+          args: [
+            { key: 'vector', label: 'Vector', type: 'vector', placeholder: '[0.25, 0.25, 0.5]' }
+          ],
+          run: ({ vector }) => UNSOperators.NORM(vector)
+        },
+        {
+          key: 'MIX',
+          label: 'MIX — Convex mix',
+          description: 'Clamps α into [0,1] before computing αu + (1−α)v.',
+          args: [
+            { key: 'u', label: 'Vector u', type: 'vector', placeholder: '[0.7, 0.3]' },
+            { key: 'v', label: 'Vector v', type: 'vector', placeholder: '[0.5, 0.5]' },
+            { key: 'alpha', label: 'α (0-1)', type: 'alpha', placeholder: '0.5' }
+          ],
+          run: ({ u, v, alpha }) => UNSOperators.MIX(u, v, alpha)
+        },
+        {
+          key: 'MERGE',
+          label: 'MERGE — Weighted union',
+          description: 'Combines a family of vectors with optional weights, then normalizes.',
+          args: [
+            { key: 'vectors', label: 'Vectors (JSON array of arrays)', type: 'vectors', placeholder: '[[0.6,0.4],[0.1,0.9]]' },
+            { key: 'weights', label: 'Weights (optional)', type: 'numberArray', optional: true, placeholder: '[2, 1]' }
+          ],
+          run: ({ vectors, weights }) => UNSOperators.MERGE(vectors, weights)
+        },
+        {
+          key: 'SPLIT',
+          label: 'SPLIT — Partition vector',
+          description: 'Creates subnormalized components α_j u (coefficients must sum to 1).',
+          args: [
+            { key: 'vector', label: 'Vector', type: 'vector', placeholder: '[0.5, 0.3, 0.2]' },
+            { key: 'coefficients', label: 'Coefficients (sum to 1)', type: 'numberArray', placeholder: '[0.25, 0.75]' }
+          ],
+          run: ({ vector, coefficients }) => UNSOperators.SPLIT(vector, coefficients)
+        },
+        {
+          key: 'CANCEL',
+          label: 'CANCEL — Remove overlap',
+          description: 'Subtracts component-wise overlap, then normalizes each residual.',
+          args: [
+            { key: 'u', label: 'Vector u', type: 'vector', placeholder: '[0.6, 0.4]' },
+            { key: 'v', label: 'Vector v', type: 'vector', placeholder: '[0.5, 0.5]' }
+          ],
+          run: ({ u, v }) => UNSOperators.CANCEL(u, v)
+        },
+        {
+          key: 'CANCEL_JOINT',
+          label: 'CANCEL_JOINT — Joint residual',
+          description: 'Returns one vector encoding both non-overlapping parts.',
+          args: [
+            { key: 'u', label: 'Vector u', type: 'vector', placeholder: '[0.3, 0.7]' },
+            { key: 'v', label: 'Vector v', type: 'vector', placeholder: '[0.8, 0.2]' }
+          ],
+          run: ({ u, v }) => UNSOperators.CANCEL_JOINT(u, v)
+        },
+        {
+          key: 'MASK',
+          label: 'MASK — Apply weights',
+          description: 'Multiplies by a nonnegative mask and renormalizes.',
+          args: [
+            { key: 'vector', label: 'Vector', type: 'vector', placeholder: '[0.2, 0.4, 0.4]' },
+            { key: 'mask', label: 'Mask vector', type: 'vector', placeholder: '[1, 0.5, 0]' }
+          ],
+          run: ({ vector, mask }) => UNSOperators.MASK(vector, mask)
+        },
+        {
+          key: 'PROJECT',
+          label: 'PROJECT — Pick indices',
+          description: 'Keeps only selected indices via MASK with a binary mask.',
+          args: [
+            { key: 'vector', label: 'Vector', type: 'vector', placeholder: '[0.1, 0.2, 0.7]' },
+            { key: 'subset', label: 'Indices (JSON array)', type: 'subset', placeholder: '[0, 2]' }
+          ],
+          run: ({ vector, subset }) => UNSOperators.PROJECT(vector, subset)
+        },
+        {
+          key: 'OVERLAP',
+          label: 'OVERLAP — Component minima',
+          description: 'Returns min(u_i, v_i) without renormalization.',
+          args: [
+            { key: 'u', label: 'Vector u', type: 'vector', placeholder: '[0.6, 0.4]' },
+            { key: 'v', label: 'Vector v', type: 'vector', placeholder: '[0.5, 0.5]' }
+          ],
+          run: ({ u, v }) => UNSOperators.OVERLAP(u, v)
+        },
+        {
+          key: 'DOT',
+          label: 'DOT — Similarity',
+          description: 'Computes ∑ u_i v_i (bounded inside [0,1]).',
+          args: [
+            { key: 'u', label: 'Vector u', type: 'vector', placeholder: '[0.9, 0.1]' },
+            { key: 'v', label: 'Vector v', type: 'vector', placeholder: '[0.2, 0.8]' }
+          ],
+          run: ({ u, v }) => UNSOperators.DOT(u, v)
+        },
+        {
+          key: 'DIST_L1',
+          label: 'DIST_L1 — L1 distance',
+          description: 'Returns 0.5 · ∑ |u_i − v_i| (also bounded inside [0,1]).',
+          args: [
+            { key: 'u', label: 'Vector u', type: 'vector', placeholder: '[0.9, 0.1]' },
+            { key: 'v', label: 'Vector v', type: 'vector', placeholder: '[0.2, 0.8]' }
+          ],
+          run: ({ u, v }) => UNSOperators.DIST_L1(u, v)
+        }
+      ];
+      const SIMPLEX_OPERATOR_INDEX = Object.fromEntries(SIMPLEX_OPERATOR_SPECS.map(spec => [spec.key, spec]));
+      const sampleProgram = `// Sample UNS program demonstrating const, +u, *s, lifts, windowed states, read
+    let alpha = const(0.75)
+    let beta = const(0.25)
+    let probe = alpha +u (beta *s 2)
+    let signal = lift1(sqrt, probe)
+    let idx = lift1(index, const(0))
+    let windowMask = lift1(windowWeight_3_4, idx)
+    state psi = windowMask
+    let guard = lift2(divide, probe +u const(0.1), signal)
+    read(guard | psi)`;
+
+      const DEFAULT_MICROSTATES = 512;
+      const MAX_MICROSTATES = 32768;
+      const MICROSTATE_STORAGE_KEY = 'uns_microstate_count';
+
+      const ui = {
+        source: document.getElementById('unsSource'),
+        output: document.getElementById('output'),
+        status: document.getElementById('status'),
+        ast: document.getElementById('astView'),
+        debug: document.getElementById('debugLog'),
+        valueTable: document.querySelector('#valueTable tbody'),
+        readTester: document.getElementById('readTester'),
+        readResult: document.getElementById('readResult'),
+        microstateInput: document.getElementById('microstateCount'),
+        highlightLayer: document.getElementById('highlightLayer'),
+        cursorStatus: document.getElementById('cursorStatus'),
+        layout: {
+          workspace: document.getElementById('workspaceLayout'),
+          resizer: document.getElementById('columnResizer')
+        },
+        examples: {
+          select: document.getElementById('exampleSelect'),
+          loadBtn: document.getElementById('loadExampleBtn')
+        },
+        inspectors: {
+          panel: document.getElementById('inspectorPanel'),
+          uvalueSelect: document.getElementById('inspectUValueSelect'),
+          uvalueBtn: document.getElementById('inspectUValueBtn'),
+          uvalueOutput: document.getElementById('inspectUValueOutput'),
+          stateSelect: document.getElementById('inspectUStateSelect'),
+          stateBtn: document.getElementById('inspectUStateBtn'),
+          stateOutput: document.getElementById('inspectUStateOutput'),
+          novelOutput: document.getElementById('novelInspector')
+        },
+        diagnostics: {
+          print: document.getElementById('diagnosticPrint'),
+          plot: document.getElementById('diagnosticPlot')
+        },
+        simplex: {
+          panel: document.getElementById('simplexPanel'),
+          select: document.getElementById('simplexOperatorSelect'),
+          inputs: document.getElementById('simplexOperatorInputs'),
+          runBtn: document.getElementById('runSimplexOperatorBtn'),
+          result: document.getElementById('simplexOperatorResult'),
+          hint: document.getElementById('simplexOperatorHint')
+        }
+      };
+
+      const EXAMPLE_SCRIPTS = {
+        smoothness: {
+          label: 'Smoothness detection',
+          code: `// Detect how smooth a hybrid window + sine signal is
+let idx = lift1(index, const(0))
+let carrier = lift1(windowWeight_96_48, idx)
+let signal = carrier +u lift1(sin, idx)
+let roughness = smoothness(signal)
+printU(signal)
+plotU(signal)`
+        },
+        primeScan: {
+          label: 'Prime distribution analysis',
+          code: `// Compare global vs windowed prime densities
+let idx = lift1(index, const(0))
+let primes = lift1(isPrime, idx)
+state psi = psi_uniform()
+let global = meanU(primes, psi)
+let firstBand = mask_range(0, 128)
+let firstBandDensity = meanU(primes *u firstBand, psi)
+read(primes | psi)`
+        },
+        dTransform: {
+          label: 'D-transform invariance',
+          code: `// Show readout invariance after shifting psi
+let idx = lift1(index, const(0))
+let wave = lift1(sin, idx)
+state psi = psi_uniform()
+state shifted = D(48, psi)
+let baseline = read(wave | psi)
+let shiftedRead = read(wave | shifted)`
+        },
+        injectedDiff: {
+          label: 'Injected diff pattern',
+          code: `// Assemble sparse differences and spike a microstate
+let diff = assemble {
+  0: 0.2,
+  1: 0.1,
+  2: -0.2,
+  3: 0.1,
+  4: 0.1
+}
+let spike = inject(0.5, 32)
+let combined = diff +u spike
+plotU(combined)`
+        },
+        triangle: {
+          label: 'Triangle hypotenuse',
+          code: `// Compute sqrt(a^2 + b^2) per microstate
+let idx = lift1(index, const(0))
+let a = lift1(sin, idx)
+let b = lift1(cos, idx)
+let hypSquared = (a *u a) +u (b *u b)
+let hyp = sqrtU(hypSquared)
+plotU(hyp)`
+        },
+        novelDivision: {
+          label: 'Division-by-zero novel',
+          code: `// Surface a novel value produced by divide-by-zero
+let zeros = collection(const(0))
+let unstable = divU(const(1), zeros)
+printU(unstable)`
+        }
+      };
+
+      if (ui.examples.select) {
+        ui.examples.select.innerHTML = '';
+        let firstKey = '';
+        Object.entries(EXAMPLE_SCRIPTS).forEach(([key, script], index) => {
+          const opt = document.createElement('option');
+          opt.value = key;
+          opt.textContent = script.label;
+          ui.examples.select.appendChild(opt);
+          if (index === 0) firstKey = key;
+        });
+        if (firstKey) ui.examples.select.value = firstKey;
+      }
+
+      if (ui.examples.loadBtn) {
+        ui.examples.loadBtn.addEventListener('click', () => {
+          if (!ui.examples.select) return;
+          const selected = ui.examples.select.value;
+          const script = EXAMPLE_SCRIPTS[selected];
+          if (!script) return;
+          ui.source.value = script.code;
+          updateHighlight();
+        });
+      }
+
+      if (ui.inspectors?.uvalueBtn) {
+        ui.inspectors.uvalueBtn.addEventListener('click', () => {
+          if (!currentVm) {
+            if (ui.inspectors.uvalueOutput) ui.inspectors.uvalueOutput.textContent = 'Run a program first.';
+            return;
+          }
+          const select = ui.inspectors.uvalueSelect;
+          if (!select || select.disabled || !select.value) {
+            if (ui.inspectors.uvalueOutput) ui.inspectors.uvalueOutput.textContent = 'No UValues available.';
+            return;
+          }
+          const binding = currentVm.env.get(select.value);
+          if (!binding || binding.kind !== 'uvalue') {
+            if (ui.inspectors.uvalueOutput) ui.inspectors.uvalueOutput.textContent = 'Binding is not a UValue.';
+            return;
+          }
+          if (ui.inspectors.uvalueOutput) ui.inspectors.uvalueOutput.textContent = formatUValueLines(currentVm, binding.ref);
+        });
+      }
+
+      if (ui.inspectors?.stateBtn) {
+        ui.inspectors.stateBtn.addEventListener('click', () => {
+          if (!currentVm) {
+            if (ui.inspectors.stateOutput) ui.inspectors.stateOutput.textContent = 'Run a program first.';
+            return;
+          }
+          const select = ui.inspectors.stateSelect;
+          if (!select || select.disabled || !select.value) {
+            if (ui.inspectors.stateOutput) ui.inspectors.stateOutput.textContent = 'No UStates available.';
+            return;
+          }
+          const binding = currentVm.env.get(select.value);
+          if (!binding || binding.kind !== 'ustate') {
+            if (ui.inspectors.stateOutput) ui.inspectors.stateOutput.textContent = 'Binding is not a UState.';
+            return;
+          }
+          if (ui.inspectors.stateOutput) ui.inspectors.stateOutput.textContent = formatUStateLines(currentVm, binding.ref);
+        });
+      }
+
+      setupCollapsibles();
+      setupSimplexToolkit();
+      setupResizer();
+
+      function setupCollapsibles() {
+        document.querySelectorAll('[data-collapsible]').forEach(section => {
+          const button = section.querySelector('.collapse-btn');
+          const body = section.querySelector('.panel-body');
+          if (!button || !body) return;
+
+          const setState = (expanded) => {
+            button.setAttribute('aria-expanded', String(expanded));
+            body.hidden = !expanded;
+            button.textContent = expanded ? 'Collapse' : 'Expand';
+          };
+
+          setState(button.getAttribute('aria-expanded') !== 'false');
+
+          button.addEventListener('click', () => {
+            const expanded = button.getAttribute('aria-expanded') === 'true';
+            setState(!expanded);
+          });
+        });
+      }
+
+      function setupSimplexToolkit() {
+        const panel = ui.simplex;
+        if (!panel?.select || !panel.inputs || !panel.runBtn || !panel.result) return;
+        if (!panel.select.options.length) {
+          SIMPLEX_OPERATOR_SPECS.forEach(spec => {
+            const option = document.createElement('option');
+            option.value = spec.key;
+            option.textContent = spec.label;
+            panel.select.appendChild(option);
+          });
+        }
+
+        if (!panel.select.value && SIMPLEX_OPERATOR_SPECS.length) {
+          panel.select.value = SIMPLEX_OPERATOR_SPECS[0].key;
+        }
+
+        let activeSpec = null;
+        let activeControls = {};
+
+        const renderInputs = () => {
+          activeControls = {};
+          panel.inputs.innerHTML = '';
+          activeSpec = SIMPLEX_OPERATOR_INDEX[panel.select.value] ?? null;
+          if (!activeSpec) return;
+          activeSpec.args.forEach(arg => {
+            const field = document.createElement('div');
+            field.className = 'simplex-field';
+            const label = document.createElement('label');
+            label.textContent = arg.label;
+            const input = createSimplexInput(arg);
+            field.appendChild(label);
+            field.appendChild(input);
+            panel.inputs.appendChild(field);
+            activeControls[arg.key] = input;
+          });
+          if (panel.hint) {
+            panel.hint.textContent = activeSpec.description;
+          }
+          panel.result.textContent = 'Ready. Provide inputs and run the helper.';
+        };
+
+        const gatherArgs = () => {
+          if (!activeSpec) return {};
+          const values = {};
+          activeSpec.args.forEach(arg => {
+            const control = activeControls[arg.key];
+            if (!control) return;
+            const raw = control.value.trim();
+            if (!raw) {
+              if (arg.optional) {
+                values[arg.key] = undefined;
+                return;
+              }
+              throw new Error(`${arg.label} is required`);
+            }
+            values[arg.key] = parseSimplexArg(raw, arg.type, arg.label);
+          });
+          return values;
+        };
+
+        panel.select.addEventListener('change', renderInputs);
+        renderInputs();
+
+        panel.runBtn.addEventListener('click', () => {
+          if (!activeSpec) return;
+          try {
+            const args = gatherArgs();
+            const output = activeSpec.run(args);
+            panel.result.textContent = formatSimplexResult(output);
+          } catch (err) {
+            panel.result.textContent = `Error: ${err.message}`;
+          }
+        });
+      }
+
+      function createSimplexInput(arg) {
+        if (arg.type === 'alpha') {
+          const input = document.createElement('input');
+          input.type = 'number';
+          input.step = '0.01';
+          input.min = '0';
+          input.max = '1';
+          input.placeholder = arg.placeholder ?? '0.5';
+          input.value = arg.defaultValue ?? '';
+          return input;
+        }
+        const textarea = document.createElement('textarea');
+        textarea.placeholder = arg.placeholder ?? '[0.25, 0.25, 0.5]';
+        textarea.value = arg.defaultValue ?? '';
+        textarea.rows = arg.rows ?? 3;
+        return textarea;
+      }
+
+      function parseSimplexArg(raw, type, label) {
+        switch (type) {
+          case 'vector':
+          case 'mask':
+            return parseVector(raw, label);
+          case 'vectors':
+            return parseVectorList(raw, label);
+          case 'numberArray':
+          case 'coefficients':
+            return parseNumberArray(raw, label);
+          case 'subset':
+            return parseSubset(raw, label);
+          case 'alpha':
+            return parseAlpha(raw, label);
+          default:
+            return raw;
+        }
+      }
+
+      function parseVector(raw, label) {
+        const parsed = safeJsonParse(raw, label);
+        if (!Array.isArray(parsed) || !parsed.length) {
+          throw new Error(`${label} must be a JSON array of numbers`);
+        }
+        return parsed.map((value, idx) => toFiniteNumber(value, `${label}[${idx}]`));
+      }
+
+      function parseVectorList(raw, label) {
+        const parsed = safeJsonParse(raw, label);
+        if (!Array.isArray(parsed) || !parsed.length) {
+          throw new Error(`${label} must be an array of vectors`);
+        }
+        return parsed.map((vec, idx) => {
+          if (!Array.isArray(vec) || !vec.length) {
+            throw new Error(`${label}[${idx}] must be a non-empty array`);
+          }
+          return vec.map((value, j) => toFiniteNumber(value, `${label}[${idx}][${j}]`));
+        });
+      }
+
+      function parseNumberArray(raw, label) {
+        const parsed = safeJsonParse(raw, label);
+        if (!Array.isArray(parsed) || !parsed.length) {
+          throw new Error(`${label} must be a JSON array of numbers`);
+        }
+        return parsed.map((value, idx) => toFiniteNumber(value, `${label}[${idx}]`));
+      }
+
+      function parseSubset(raw, label) {
+        const parsed = parseNumberArray(raw, label);
+        return parsed.map((value, idx) => {
+          const intVal = Math.trunc(value);
+          if (intVal < 0) throw new Error(`${label}[${idx}] must be >= 0`);
+          return intVal;
+        });
+      }
+
+      function parseAlpha(raw, label) {
+        const num = toFiniteNumber(raw, label);
+        return num;
+      }
+
+      function safeJsonParse(raw, label) {
+        try {
+          return JSON.parse(raw);
+        } catch (err) {
+          throw new Error(`${label} must be valid JSON`);
+        }
+      }
+
+      function toFiniteNumber(value, label) {
+        const num = Number(value);
+        if (!Number.isFinite(num)) {
+          throw new Error(`${label} must be a finite number`);
+        }
+        return num;
+      }
+
+      function formatSimplexResult(value) {
+        if (typeof value === 'number') {
+          return Number.isFinite(value) ? value.toPrecision(6) : String(value);
+        }
+        if (Array.isArray(value)) {
+          return JSON.stringify(value, null, 2);
+        }
+        if (value && typeof value === 'object') {
+          return JSON.stringify(value, null, 2);
+        }
+        return String(value ?? '');
+      }
+
+      function setupResizer() {
+        const workspace = ui.layout?.workspace;
+        const resizer = ui.layout?.resizer;
+        if (!workspace || !resizer) return;
+        const minLeft = 320;
+        const minRight = 280;
+        let active = false;
+
+        const handleMove = (event) => {
+          if (!active) return;
+          const rect = workspace.getBoundingClientRect();
+          let newLeft = event.clientX - rect.left;
+          const maxLeft = rect.width - minRight;
+          newLeft = Math.max(minLeft, Math.min(maxLeft, newLeft));
+          const percent = (newLeft / rect.width) * 100;
+          workspace.style.setProperty('--left-col', `${percent}%`);
+        };
+
+        const stopResize = (event) => {
+          if (!active) return;
+          active = false;
+          resizer.classList.remove('dragging');
+          if (event.pointerId !== undefined && resizer.hasPointerCapture(event.pointerId)) {
+            resizer.releasePointerCapture(event.pointerId);
+          }
+          document.removeEventListener('pointermove', handleMove);
+          document.removeEventListener('pointerup', stopResize);
+          document.removeEventListener('pointercancel', stopResize);
+        };
+
+        resizer.addEventListener('pointerdown', (event) => {
+          event.preventDefault();
+          active = true;
+          resizer.classList.add('dragging');
+          resizer.setPointerCapture(event.pointerId);
+          document.addEventListener('pointermove', handleMove);
+          document.addEventListener('pointerup', stopResize);
+          document.addEventListener('pointercancel', stopResize);
+        });
+      }
+
+      document.getElementById('sampleBtn').addEventListener('click', () => {
+        ui.source.value = sampleProgram;
+        updateHighlight();
+      });
+
+      document.getElementById('clearBtn').addEventListener('click', () => {
+        ui.source.value = '';
+        ui.output.textContent = 'Cleared.';
+        ui.status.textContent = '';
+        ui.ast.textContent = '// AST will appear here';
+        ui.debug.textContent = '// logs will appear here';
+        ui.valueTable.innerHTML = '';
+        ui.readTester.innerHTML = '';
+        ui.readResult.textContent = '';
+        currentVm = null;
+        resetInspectors();
+        resetDiagnostics();
+        updateHighlight();
+      });
+
+      document.getElementById('runBtn').addEventListener('click', () => {
+        const value = getConfiguredMicrostates();
+        persistMicrostatePreference(value);
+        execute(ui.source.value);
+      });
+
+      let currentVm = null;
+      ui.source.addEventListener('input', updateHighlight);
+      ui.source.addEventListener('scroll', syncScroll);
+      ui.source.addEventListener('click', updateCursorStatus);
+      ui.source.addEventListener('keyup', updateCursorStatus);
+      ui.source.addEventListener('mouseup', updateCursorStatus);
+
+      const storage = (() => {
+        try {
+          return window.localStorage;
+        } catch (err) {
+          return null;
+        }
+      })();
+
+      function clampMicrostateCount(value) {
+        if (!Number.isFinite(value)) return DEFAULT_MICROSTATES;
+        return Math.min(MAX_MICROSTATES, Math.max(1, Math.floor(value)));
+      }
+
+      function loadMicrostatePreference() {
+        if (!storage) return DEFAULT_MICROSTATES;
+        const raw = parseInt(storage.getItem(MICROSTATE_STORAGE_KEY) ?? '', 10);
+        if (!Number.isFinite(raw)) return DEFAULT_MICROSTATES;
+        return clampMicrostateCount(raw);
+      }
+
+      function persistMicrostatePreference(value) {
+        if (storage) storage.setItem(MICROSTATE_STORAGE_KEY, String(value));
+      }
+
+      function getConfiguredMicrostates() {
+        if (!ui.microstateInput) return DEFAULT_MICROSTATES;
+        const parsed = parseInt(ui.microstateInput.value, 10);
+        const clamped = clampMicrostateCount(Number.isFinite(parsed) ? parsed : DEFAULT_MICROSTATES);
+        ui.microstateInput.value = clamped;
+        return clamped;
+      }
+
+      const initialMicrostates = loadMicrostatePreference();
+      if (ui.microstateInput) {
+        ui.microstateInput.value = initialMicrostates;
+        ui.microstateInput.addEventListener('change', () => {
+          const value = getConfiguredMicrostates();
+          persistMicrostatePreference(value);
+        });
+      }
+
+      function encodeReal(v) {
+        return Math.round(v * SCALE);
+      }
+
+      function decodeReal(word) {
+        return word / SCALE;
+      }
+
+      function clampWord(word) {
+        if (!Number.isFinite(word)) return 0;
+        if (word > 2147483647) return 2147483647;
+        if (word < -2147483648) return -2147483648;
+        return word | 0;
+      }
+
+      function addQ16(a, b) {
+        return clampWord(a + b);
+      }
+
+      function subQ16(a, b) {
+        return clampWord(a - b);
+      }
+
+      function mulQ16(a, b) {
+        const prod = Math.trunc((a * b) / SCALE);
+        return clampWord(prod);
+      }
+
+      function complex(real, imag = 0) {
+        return { real: encodeReal(real), imag: encodeReal(imag) };
+      }
+
+      function cloneComplex(c) {
+        return { real: c.real | 0, imag: c.imag | 0, novelId: c.novelId };
+      }
+
+      function complexAdd(a, b) {
+        if (a.novelId) return cloneComplex(a);
+        if (b.novelId) return cloneComplex(b);
+        return { real: addQ16(a.real, b.real), imag: addQ16(a.imag, b.imag) };
+      }
+
+      function complexMul(a, b) {
+        if (a.novelId) return cloneComplex(a);
+        if (b.novelId) return cloneComplex(b);
+        const real = subQ16(mulQ16(a.real, b.real), mulQ16(a.imag, b.imag));
+        const imag = addQ16(mulQ16(a.real, b.imag), mulQ16(a.imag, b.real));
+        return { real, imag };
+      }
+
+      function complexScale(s, v) {
+        if (s.novelId) return cloneComplex(s);
+        if (v.novelId) return cloneComplex(v);
+        return complexMul(s, v);
+      }
+
+      function magnitudeSquared(c) {
+        if (c.novelId) return 0;
+        const realSq = mulQ16(c.real, c.real);
+        const imagSq = mulQ16(c.imag, c.imag);
+        return addQ16(realSq, imagSq);
+      }
+
+      function floatToComplex(re, im = 0) {
+        return { real: encodeReal(re), imag: encodeReal(im) };
+      }
+
+      function complexToFloat(c) {
+        return { re: decodeReal(c.real), im: decodeReal(c.imag) };
+      }
+
+      function escapeHtml(str) {
+        return str
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;');
+      }
+
+      function syntaxHighlight(text) {
+        let html = '';
+        let i = 0;
+        const len = text.length;
+        const push = (cls, value) => {
+          const escaped = escapeHtml(value);
+          html += cls ? `<span class="token-${cls}">${escaped}</span>` : escaped;
+        };
+
+        while (i < len) {
+          const ch = text[i];
+          const next = text[i + 1];
+
+          if (ch === '\r') {
+            i += 1;
+            continue;
+          }
+
+          if (ch === '\n') {
+            html += '\n';
+            i += 1;
+            continue;
+          }
+
+          if (ch === '/' && next === '/') {
+            const start = i;
+            i += 2;
+            while (i < len && text[i] !== '\n') i += 1;
+            push('comment', text.slice(start, i));
+            continue;
+          }
+
+          if (ch === '/' && next === '*') {
+            const start = i;
+            i += 2;
+            while (i < len && !(text[i] === '*' && text[i + 1] === '/')) i += 1;
+            if (i < len) i += 2;
+            push('comment', text.slice(start, i));
+            continue;
+          }
+
+          if ((ch === '-' && /[0-9]/.test(next)) || /[0-9]/.test(ch)) {
+            const start = i;
+            i += 1;
+            while (i < len && /[0-9]/.test(text[i])) i += 1;
+            if (text[i] === '.' && /[0-9]/.test(text[i + 1])) {
+              i += 1;
+              while (i < len && /[0-9]/.test(text[i])) i += 1;
+            }
+            if (text[i] === 'i') i += 1;
+            push('number', text.slice(start, i));
+            continue;
+          }
+
+          if ((ch === '+' || ch === '*') && next === 'u') {
+            push('operator', text.slice(i, i + 2));
+            i += 2;
+            continue;
+          }
+
+          if (ch === '*' && next === 's') {
+            push('operator', text.slice(i, i + 2));
+            i += 2;
+            continue;
+          }
+
+          if ('=|,(){}:'.includes(ch)) {
+            push('operator', ch);
+            i += 1;
+            continue;
+          }
+
+          if (/[A-Za-z_]/.test(ch)) {
+            const start = i;
+            i += 1;
+            while (i < len && /[A-Za-z0-9_]/.test(text[i])) i += 1;
+            const word = text.slice(start, i);
+            const cls = (KEYWORDS.has(word) || RESERVED.has(word) || HELPER_CALLS.has(word)) ? 'keyword' : 'identifier';
+            push(cls, word);
+            continue;
+          }
+
+          push(null, ch);
+          i += 1;
+        }
+
+        return html || '&nbsp;';
+      }
+
+      function syncScroll() {
+        if (!ui.highlightLayer) return;
+        ui.highlightLayer.scrollTop = ui.source.scrollTop;
+        ui.highlightLayer.scrollLeft = ui.source.scrollLeft;
+      }
+
+      function updateCursorStatus() {
+        if (!ui.cursorStatus || !ui.source) return;
+        const pos = ui.source.selectionStart ?? 0;
+        const text = ui.source.value ?? '';
+        let line = 1;
+        let column = 1;
+        for (let i = 0; i < pos; i++) {
+          if (text[i] === '\n') {
+            line += 1;
+            column = 1;
+          } else {
+            column += 1;
+          }
+        }
+        ui.cursorStatus.textContent = `Line ${line}, Col ${column}`;
+      }
+
+      function updateHighlight() {
+        if (!ui.highlightLayer) return;
+        const text = ui.source.value ?? '';
+        ui.highlightLayer.innerHTML = syntaxHighlight(text);
+        const wrapper = ui.highlightLayer.parentElement;
+        if (wrapper) {
+          wrapper.dataset.empty = text.length ? 'false' : 'true';
+          wrapper.dataset.placeholder = ui.source.placeholder || '';
+        }
+        syncScroll();
+        updateCursorStatus();
+      }
+
+      function toInt(word) {
+        return Math.trunc(decodeReal(word));
+      }
+
+      function isPrimeInt(n) {
+        if (n <= 1) return false;
+        if (n <= 3) return true;
+        if (n % 2 === 0 || n % 3 === 0) return false;
+        for (let i = 5; i * i <= n; i += 6) {
+          if (n % i === 0 || n % (i + 2) === 0) return false;
+        }
+        return true;
+      }
+
+      function tokenize(source) {
+        const tokens = [];
+        let i = 0;
+        let line = 1;
+        let column = 1;
+
+        const advance = () => {
+          const ch = source[i++];
+          if (ch === '\n') {
+            line += 1;
+            column = 1;
+          } else {
+            column += 1;
+          }
+          return ch;
+        };
+
+        const peek = (offset = 0) => source[i + offset];
+
+        const emit = (type, value) => {
+          tokens.push({ type, value, line, column });
+        };
+
+        while (i < source.length) {
+          let ch = peek();
+
+          if (/\s/.test(ch)) {
+            advance();
+            continue;
+          }
+
+          if (ch === '/' && peek(1) === '/') {
+            while (i < source.length && advance() !== '\n') {}
+            continue;
+          }
+
+          if (ch === '/' && peek(1) === '*') {
+            advance();
+            advance();
+            while (i < source.length && !(peek() === '*' && peek(1) === '/')) {
+              advance();
+            }
+            advance();
+            advance();
+            continue;
+          }
+
+          if (ch === '/') {
+            throw new Error('Use lift2(divide, ...) or frac(a, b) for division');
+          }
+
+          const two = source.slice(i, i + 2);
+          if (['+u', '*u', '*s'].includes(two)) {
+            emit('operator', two);
+            advance();
+            advance();
+            continue;
+          }
+
+          if (ch === '=') {
+            emit('operator', ch);
+            advance();
+            continue;
+          }
+
+          if ('|,(){}:'.includes(ch)) {
+            emit('punct', ch);
+            advance();
+            continue;
+          }
+
+          if ((ch === '-' && /[0-9]/.test(peek(1))) || /[0-9]/.test(ch)) {
+            let literal = '';
+            literal += advance();
+            while (/[0-9]/.test(peek())) literal += advance();
+            if (peek() === '.' && /[0-9]/.test(peek(1))) {
+              literal += advance();
+              while (/[0-9]/.test(peek())) literal += advance();
+            }
+            let realPart = parseFloat(literal);
+            let imagPart = 0;
+            const rest = source.slice(i);
+            const complexMatch = rest.match(/^([+-])(?!u)(\d+(?:\.\d+)?)(i)/);
+            if (complexMatch) {
+              const consumed = complexMatch[0].length;
+              for (let k = 0; k < consumed; k++) advance();
+              imagPart = parseFloat(`${complexMatch[1]}${complexMatch[2]}`);
+            } else if (rest.startsWith('i')) {
+              advance();
+              imagPart = realPart;
+              realPart = 0;
+            }
+            emit('number', { re: realPart, im: imagPart });
+            continue;
+          }
+
+          if (/[A-Za-z_]/.test(ch)) {
+            let ident = '';
+            do {
+              ident += advance();
+              ch = peek();
+            } while (/[A-Za-z0-9_]/.test(ch));
+            if (KEYWORDS.has(ident)) {
+              emit('keyword', ident);
+            } else if (RESERVED.has(ident)) {
+              emit('reserved', ident);
+            } else {
+              emit('identifier', ident);
+            }
+            continue;
+          }
+
+          throw new Error(`Unexpected character '${ch}' at ${line}:${column}`);
+        }
+
+        tokens.push({ type: 'eof', line, column });
+        return tokens;
+      }
+
+      class Parser {
+        constructor(tokens) {
+          this.tokens = tokens;
+          this.pos = 0;
+        }
+
+        current() {
+          return this.tokens[this.pos];
+        }
+
+        match(type, value) {
+          const tok = this.current();
+          if (!tok) return false;
+          if (tok.type === type && (value === undefined || tok.value === value)) {
+            this.pos += 1;
+            return tok;
+          }
+          return false;
+        }
+
+        expect(type, value) {
+          const tok = this.match(type, value);
+          if (!tok) {
+            const label = value ?? type;
+            const got = this.current();
+            throw new Error(`Expected ${label} at ${got?.line ?? '?'}:${got?.column ?? '?'}`);
+          }
+          return tok;
+        }
+
+        parseProgram() {
+          const body = [];
+          while (this.current()?.type !== 'eof') {
+            body.push(this.parseDeclOrExpr());
+          }
+          this.expect('eof');
+          return { type: 'Program', body };
+        }
+
+        parseDeclOrExpr() {
+          if (this.match('keyword', 'let')) {
+            const nameToken = this.expect('identifier');
+            this.expect('operator', '=');
+            const value = this.parseExpr();
+            return { type: 'LetDecl', name: nameToken.value, value };
+          }
+          if (this.match('keyword', 'state')) {
+            const nameToken = this.expect('identifier');
+            this.expect('operator', '=');
+            const value = this.parseExpr();
+            return { type: 'StateDecl', name: nameToken.value, value };
+          }
+          return this.parseExpr();
+        }
+
+        parseExpr() {
+          return this.parseBinaryExpr(0);
+        }
+
+        parseBinaryExpr(minPrec) {
+          let left = this.parsePrimary();
+          while (true) {
+            const token = this.current();
+            if (!token || token.type !== 'operator') break;
+            const prec = PRECEDENCE[token.value];
+            if (prec === undefined || prec < minPrec) break;
+            this.pos += 1;
+            const right = this.parseBinaryExpr(prec + 1);
+            left = { type: 'Binary', op: token.value, left, right };
+          }
+          return left;
+        }
+
+        parsePrimary() {
+          if (this.match('keyword', 'read')) return this.parseRead();
+          if (this.match('keyword', 'lift1')) return this.parseLift1();
+          if (this.match('keyword', 'lift2')) return this.parseLift2();
+          if (this.match('keyword', 'const')) return this.parseConst();
+          if (this.match('keyword', 'D')) return this.parseD();
+          if (this.match('keyword', 'true')) return { type: 'ScalarLiteral', value: { re: 1, im: 0 } };
+          if (this.match('keyword', 'false')) return { type: 'ScalarLiteral', value: { re: 0, im: 0 } };
+
+          const keywordHelper = this.current();
+          const keywordLookahead = this.tokens[this.pos + 1];
+          if (
+            keywordHelper?.type === 'keyword' &&
+            HELPER_CALLS.has(keywordHelper.value) &&
+            keywordLookahead?.type === 'punct' &&
+            keywordLookahead.value === '('
+          ) {
+            this.pos += 1;
+            return this.parseHelperCall(keywordHelper.value);
+          }
+
+          const special = this.current();
+          const lookahead = this.tokens[this.pos + 1];
+          if (
+            special?.type === 'identifier' &&
+            special.value === 'uvalue_of' &&
+            lookahead?.type === 'punct' &&
+            lookahead.value === '('
+          ) {
+            this.pos += 1;
+            return this.parseUValueOf();
+          }
+          if (
+            special?.type === 'identifier' &&
+            special.value === 'frac' &&
+            lookahead?.type === 'punct' &&
+            lookahead.value === '('
+          ) {
+            this.pos += 1;
+            return this.parseFrac();
+          }
+
+          if (
+            special?.type === 'identifier' &&
+            special.value === 'assemble' &&
+            lookahead?.type === 'punct' &&
+            lookahead.value === '{'
+          ) {
+            this.pos += 1;
+            return this.parseAssemble();
+          }
+
+          const helperCandidate = this.current();
+          if (
+            helperCandidate?.type === 'identifier' &&
+            HELPER_CALLS.has(helperCandidate.value) &&
+            lookahead?.type === 'punct' &&
+            lookahead.value === '('
+          ) {
+            this.pos += 1;
+            return this.parseHelperCall(helperCandidate.value);
+          }
+
+          if (this.match('punct', '(')) {
+            const expr = this.parseExpr();
+            this.expect('punct', ')');
+            return expr;
+          }
+
+          const number = this.match('number');
+          if (number) return { type: 'ScalarLiteral', value: number.value };
+
+          const ident = this.match('identifier');
+          if (ident) return { type: 'Identifier', name: ident.value };
+
+          throw new Error('Unexpected token in expression');
+        }
+
+        parseRead() {
+          this.expect('punct', '(');
+          const value = this.parseExpr();
+          this.expect('punct', '|');
+          const state = this.parseExpr();
+          this.expect('punct', ')');
+          return { type: 'Read', value, state };
+        }
+
+        parseLift1() {
+          this.expect('punct', '(');
+          const fn = this.expect('identifier').value;
+          this.expect('punct', ',');
+          const arg = this.parseExpr();
+          this.expect('punct', ')');
+          return { type: 'Lift1', funcName: fn, arg };
+        }
+
+        parseLift2() {
+          this.expect('punct', '(');
+          const fn = this.expect('identifier').value;
+          this.expect('punct', ',');
+          const left = this.parseExpr();
+          this.expect('punct', ',');
+          const right = this.parseExpr();
+          this.expect('punct', ')');
+          return { type: 'Lift2', funcName: fn, left, right };
+        }
+
+        parseConst() {
+          this.expect('punct', '(');
+          const literal = this.parseExpr();
+          this.expect('punct', ')');
+          return { type: 'Const', value: literal };
+        }
+
+        parseD() {
+          this.expect('punct', '(');
+          const dimensionLiteral = this.expect('number');
+          if (dimensionLiteral.value.im !== 0) throw new Error('Dimension must be real');
+          const dimension = Math.max(1, Math.floor(dimensionLiteral.value.re));
+          this.expect('punct', ',');
+          const stateExpr = this.parseExpr();
+          this.expect('punct', ')');
+          return { type: 'DTransform', dimension, stateExpr };
+        }
+
+        parseHelperCall(name) {
+          this.expect('punct', '(');
+          const args = [];
+          if (!this.match('punct', ')')) {
+            do {
+              args.push(this.parseExpr());
+            } while (this.match('punct', ','));
+            this.expect('punct', ')');
+          }
+          return { type: 'HelperCall', name, args };
+        }
+
+        parseUValueOf() {
+          this.expect('punct', '(');
+          this.expect('punct', '{');
+          const entries = [];
+          if (!this.match('punct', '}')) {
+            do {
+              const token = this.expect('number');
+              if (token.value.im !== 0) throw new Error('uvalue_of index must be real');
+              const rawIndex = Math.floor(token.value.re);
+              if (!Number.isFinite(rawIndex) || rawIndex < 0) throw new Error('uvalue_of index must be >= 0');
+              this.expect('punct', ':');
+              const expr = this.parseExpr();
+              entries.push({ index: rawIndex, expr });
+            } while (this.match('punct', ','));
+            this.expect('punct', '}');
+          }
+          this.expect('punct', ')');
+          return { type: 'UValueOf', entries };
+        }
+
+        parseFrac() {
+          this.expect('punct', '(');
+          const numerator = this.parseExpr();
+          this.expect('punct', ',');
+          const denominator = this.parseExpr();
+          this.expect('punct', ')');
+          return { type: 'FracCall', numerator, denominator };
+        }
+
+        parseAssemble() {
+          this.expect('punct', '{');
+          const entries = [];
+          if (!this.match('punct', '}')) {
+            do {
+              const key = this.expect('number');
+              if (key.value.im !== 0) throw new Error('assemble index must be real');
+              const index = Math.floor(key.value.re);
+              if (!Number.isFinite(index) || index < 0) throw new Error('assemble index must be >= 0');
+              this.expect('punct', ':');
+              const expr = this.parseExpr();
+              entries.push({ index, expr });
+            } while (this.match('punct', ','));
+            this.expect('punct', '}');
+          }
+          return { type: 'Assemble', entries };
+        }
+      }
+
+      class Compiler {
+        constructor() {
+          this.instructions = [];
+          this.envTypes = new Map();
+          this.order = [];
+        }
+
+        ensureUValueType(type, context) {
+          if (type === 'uvalue') return 'uvalue';
+          if (type === 'scalar') {
+            this.emit('MAKE_CONST_UVALUE');
+            return 'uvalue';
+          }
+          throw new Error(`${context} expects UValue but received ${type}`);
+        }
+
+        ensureScalarType(type, context) {
+          if (type !== 'scalar') throw new Error(`${context} expects scalar but received ${type}`);
+          return 'scalar';
+        }
+
+        coerceHelperArg(type, expected, helperName, index) {
+          if (!expected) return type;
+          const label = `${helperName} arg ${index + 1}`;
+          if (expected === 'uvalue') return this.ensureUValueType(type, label);
+          if (expected === 'scalar') return this.ensureScalarType(type, label);
+          if (expected === 'scalarOrUValue') {
+            if (type === 'scalar' || type === 'uvalue') return type;
+            throw new Error(`${label} expects scalar or UValue but received ${type}`);
+          }
+          if (expected === 'stateLike') {
+            if (type === 'ustate') return 'ustate';
+            if (type === 'uvalue') return 'uvalue';
+            if (type === 'scalar') {
+              this.emit('MAKE_CONST_UVALUE');
+              return 'uvalue';
+            }
+            throw new Error(`${label} expects UState or UValue but received ${type}`);
+          }
+          return type;
+        }
+
+        extractScalarLiteral(node) {
+          if (!node) return null;
+          if (node.type === 'ScalarLiteral' && node.value) return node.value;
+          if (node.type === 'Const') return this.extractScalarLiteral(node.value);
+          return null;
+        }
+
+        compile(program) {
+          this.instructions = [];
+          this.envTypes = new Map();
+          this.order = [];
+          let finalType = 'void';
+          for (const node of program.body) {
+            if (node.type === 'LetDecl') {
+              const exprType = this.emitExpr(node.value);
+              this.emit('STORE', node.name);
+              this.envTypes.set(node.name, exprType);
+              if (!this.order.includes(node.name)) this.order.push(node.name);
+              finalType = 'void';
+            } else if (node.type === 'StateDecl') {
+              let exprType = this.emitExpr(node.value);
+              if (exprType === 'uvalue') {
+                this.emit('UVALUE_TO_STATE');
+                exprType = 'ustate';
+              }
+              if (exprType !== 'ustate') throw new Error(`state ${node.name} must be UState-compatible`);
+              this.emit('NORM_STATE');
+              this.emit('STORE', node.name);
+              this.envTypes.set(node.name, 'ustate');
+              if (!this.order.includes(node.name)) this.order.push(node.name);
+              finalType = 'void';
+            } else {
+              finalType = this.emitExpr(node);
+            }
+          }
+          this.emit('HALT');
+          return { instructions: this.instructions, finalType, envTypes: this.envTypes, order: this.order };
+        }
+
+        emit(op, ...args) {
+          this.instructions.push({ op, args });
+        }
+
+        emitExpr(node) {
+          switch (node.type) {
+            case 'ScalarLiteral': {
+              const re = encodeReal(node.value.re);
+              const im = encodeReal(node.value.im);
+              this.emit('PUSH_SCALAR', re, im);
+              return 'scalar';
+            }
+            case 'Identifier': {
+              if (!this.envTypes.has(node.name)) throw new Error(`Unknown identifier ${node.name}`);
+              this.emit('LOAD', node.name);
+              return this.envTypes.get(node.name);
+            }
+            case 'Const': {
+              const literal = this.extractScalarLiteral(node.value);
+              if (literal) {
+                this.emit('PUSH_SCALAR', encodeReal(literal.re), encodeReal(literal.im));
+              } else {
+                const type = this.emitExpr(node.value);
+                if (type !== 'scalar') throw new Error(`const(arg) requires scalar but received ${type}`);
+              }
+              this.emit('MAKE_CONST_UVALUE');
+              return 'uvalue';
+            }
+            case 'Binary': {
+              let leftType = this.emitExpr(node.left);
+              let rightType = this.emitExpr(node.right);
+              if (node.op === '+u' || node.op === '*u') {
+                leftType = this.ensureUValueType(leftType, `${node.op} left operand`);
+                rightType = this.ensureUValueType(rightType, `${node.op} right operand`);
+                this.emit(node.op === '+u' ? 'UADD' : 'UMUL');
+                return 'uvalue';
+              }
+              if (node.op === '*s') {
+                const types = [leftType, rightType];
+                const scalarCount = types.filter((t) => t === 'scalar').length;
+                const uvalueCount = types.filter((t) => t === 'uvalue').length;
+                if (scalarCount === 2 || (scalarCount === 1 && uvalueCount === 1)) {
+                  this.emit('SSCALE');
+                  return 'uvalue';
+                }
+                if (scalarCount === 0 && uvalueCount === 2) {
+                  throw new Error(`*s cannot scale two UValues (received ${leftType} * ${rightType}); use *u for element-wise multiplication`);
+                }
+                throw new Error(`*s expects either two scalars or a scalar/UValue pair but received ${leftType} * ${rightType}`);
+              }
+              throw new Error(`Unknown binary op ${node.op}`);
+            }
+            case 'Lift1': {
+              const type = this.emitExpr(node.arg);
+              this.ensureUValueType(type, 'lift1 argument');
+              this.emit('LIFT1', node.funcName);
+              return 'uvalue';
+            }
+            case 'Lift2': {
+              const leftType = this.emitExpr(node.left);
+              const rightType = this.emitExpr(node.right);
+              this.ensureUValueType(leftType, 'lift2 left argument');
+              this.ensureUValueType(rightType, 'lift2 right argument');
+              this.emit('LIFT2', node.funcName);
+              return 'uvalue';
+            }
+            case 'Read': {
+              const valueType = this.emitExpr(node.value);
+              if (valueType !== 'uvalue') throw new Error('read value must be UValue');
+              let stateType = this.emitExpr(node.state);
+              if (stateType === 'uvalue') {
+                this.emit('UVALUE_TO_STATE');
+                stateType = 'ustate';
+              }
+              if (stateType !== 'ustate') throw new Error('read state must be UState');
+              this.emit('READ');
+              return 'scalar';
+            }
+            case 'DTransform': {
+              let type = this.emitExpr(node.stateExpr);
+              if (type === 'uvalue') {
+                this.emit('UVALUE_TO_STATE');
+                type = 'ustate';
+              }
+              if (type !== 'ustate') throw new Error('D expects a state');
+              this.emit('D_TRANSFORM', node.dimension);
+              this.emit('NORM_STATE');
+              return 'ustate';
+            }
+            case 'UValueOf': {
+              const indexes = [];
+              for (const entry of node.entries) {
+                const type = this.emitExpr(entry.expr);
+                this.ensureUValueType(type, 'uvalue_of entry');
+                indexes.push(entry.index);
+              }
+              this.emit('BUILD_UVALUE_OF', indexes);
+              return 'uvalue';
+            }
+            case 'FracCall': {
+              this.ensureUValueType(this.emitExpr(node.numerator), 'frac numerator');
+              this.ensureUValueType(this.emitExpr(node.denominator), 'frac denominator');
+              this.emit('LIFT2', 'divide');
+              return 'uvalue';
+            }
+            case 'HelperCall': {
+              const spec = HELPER_SPECS[node.name];
+              if (!spec) throw new Error(`Unknown helper ${node.name}`);
+              const requiredArgs = spec.required ?? [];
+              const optionalArgs = spec.optional ?? [];
+              const variadicType = spec.variadicType;
+              const argCount = node.args.length;
+              const minArgs = requiredArgs.length;
+              const maxArgs = variadicType ? Infinity : minArgs + optionalArgs.length;
+              const exceedsMax = Number.isFinite(maxArgs) && argCount > maxArgs;
+              if (argCount < minArgs || exceedsMax) {
+                const upper = Number.isFinite(maxArgs) ? maxArgs : 'unlimited';
+                throw new Error(`${node.name} expects between ${minArgs} and ${upper} args but received ${argCount}`);
+              }
+              const expectedTypes = requiredArgs.slice();
+              const optionalSpan = Math.max(0, Math.min(optionalArgs.length, argCount - minArgs));
+              for (let i = 0; i < optionalSpan; i++) expectedTypes.push(optionalArgs[i]);
+              node.args.forEach((arg, idx) => {
+                let actualType = this.emitExpr(arg);
+                const expected = expectedTypes[idx] ?? variadicType;
+                actualType = this.coerceHelperArg(actualType, expected, node.name, idx);
+                expectedTypes[idx] = actualType;
+              });
+              this.emit('CALL_HELPER', node.name, argCount);
+              return spec.returnType ?? 'void';
+            }
+            case 'Assemble': {
+              if (!node.entries.length) {
+                this.emit('PUSH_SCALAR', 0, 0);
+                this.emit('MAKE_CONST_UVALUE');
+                return 'uvalue';
+              }
+              node.entries.forEach((entry, idx) => {
+                const injectNode = {
+                  type: 'HelperCall',
+                  name: 'inject',
+                  args: [
+                    entry.expr,
+                    { type: 'ScalarLiteral', value: { re: entry.index, im: 0 } }
+                  ]
+                };
+                const injectType = this.emitExpr(injectNode);
+                this.ensureUValueType(injectType, 'assemble entry');
+                if (idx > 0) this.emit('UADD');
+              });
+              return 'uvalue';
+            }
+            default:
+              throw new Error(`Unhandled AST node ${node.type}`);
+          }
+        }
+      }
+
+      class NovelTracker {
+        constructor() {
+          this.entries = [];
+        }
+
+        record(op, args, index) {
+          const id = this.entries.length + 1;
+          this.entries.push({ id, op, args, index });
+          return id;
+        }
+      }
+
+      class VirtualMachine {
+        constructor({ microstates = DEFAULT_MICROSTATES, diagnostics = null } = {}) {
+          this.M = clampMicrostateCount(microstates);
+          this.heap = { values: [], states: [], novels: new NovelTracker() };
+          this.env = new Map();
+          this.order = [];
+          this.stack = [];
+          this.ip = 0;
+          this.trace = [];
+          this.lastValue = null;
+          this.diagnostics = diagnostics;
+        }
+
+        ensureMicrostates(target) {
+          const desired = clampMicrostateCount(target);
+          if (desired <= this.M) return;
+          const filler = () => ({ real: 0, imag: 0 });
+          this.heap.values.forEach((arr) => {
+            for (let i = arr.length; i < desired; i++) arr[i] = filler();
+          });
+          this.heap.states.forEach((arr) => {
+            for (let i = arr.length; i < desired; i++) arr[i] = filler();
+          });
+          this.M = desired;
+        }
+
+        cloneValue(value) {
+          if (!value) return value;
+          if (value.kind === 'scalar') return { kind: 'scalar', data: cloneComplex(value.data) };
+          return { kind: value.kind, ref: value.ref };
+        }
+
+        push(value) {
+          this.stack.push(value);
+        }
+
+        pop() {
+          const value = this.stack.pop();
+          if (!value) throw new Error('Stack underflow');
+          return value;
+        }
+
+        envSet(name, value) {
+          this.env.set(name, this.cloneValue(value));
+          if (!this.order.includes(name)) this.order.push(name);
+        }
+
+        envGet(name) {
+          if (!this.env.has(name)) throw new Error(`Unbound variable '${name}'. Declare it with let/state before use.`);
+          const value = this.env.get(name);
+          return this.cloneValue(value);
+        }
+
+        allocateUValue(initializer) {
+          const id = this.heap.values.push(initializer) - 1;
+          return id;
+        }
+
+        allocateUState(initializer) {
+          const id = this.heap.states.push(initializer) - 1;
+          return id;
+        }
+
+        normalizeState(id) {
+          const state = this.heap.states[id];
+          let sum = 0;
+          for (const c of state) sum = addQ16(sum, magnitudeSquared(c));
+          const decoded = decodeReal(sum);
+          if (decoded <= 0) {
+            const uniform = encodeReal(1 / Math.sqrt(this.M));
+            for (let i = 0; i < this.M; i++) {
+              state[i] = { real: uniform, imag: 0 };
+            }
+            return;
+          }
+          const scale = encodeReal(1 / Math.sqrt(decoded));
+          for (let i = 0; i < this.M; i++) {
+            const c = state[i];
+            state[i] = {
+              real: mulQ16(c.real, scale),
+              imag: mulQ16(c.imag, scale),
+              novelId: c.novelId
+            };
+          }
+        }
+
+        makeUniformStateValue() {
+          const amp = encodeReal(1 / Math.sqrt(Math.max(1, this.M)));
+          const arr = Array.from({ length: this.M }, () => ({ real: amp, imag: 0 }));
+          const ref = this.allocateUState(arr);
+          this.normalizeState(ref);
+          return { kind: 'ustate', ref };
+        }
+
+        ensureUValueArg(value, helperName) {
+          if (!value || value.kind !== 'uvalue') throw new Error(`${helperName} expects a UValue argument`);
+          return value;
+        }
+
+        resolveStateValue(input) {
+          if (!input) return this.makeUniformStateValue();
+          if (input.kind === 'ustate') return input;
+          if (input.kind === 'uvalue') {
+            const arr = this.heap.values[input.ref].map(cloneComplex);
+            const ref = this.allocateUState(arr);
+            this.normalizeState(ref);
+            return { kind: 'ustate', ref };
+          }
+          throw new Error('State argument must be a UState or UValue');
+        }
+
+        scalarToFloat(value, label) {
+          if (!value || value.kind !== 'scalar') throw new Error(`${label} expects a scalar`);
+          return decodeReal(value.data.real);
+        }
+
+        clampIndexPosition(v) {
+          if (!Number.isFinite(v)) return 0;
+          const maxIndex = Math.max(0, this.M - 1);
+          if (maxIndex === 0) return 0;
+          return Math.min(maxIndex, Math.max(0, Math.floor(v)));
+        }
+
+        stateFromRange(startValue, endValue) {
+          if (this.M <= 0) return this.makeUniformStateValue();
+          const startIdx = this.clampIndexPosition(startValue);
+          const endIdx = this.clampIndexPosition(endValue);
+          const lo = Math.min(startIdx, endIdx);
+          const hi = Math.max(startIdx, endIdx);
+          const span = hi - lo + 1;
+          if (span <= 0) return this.makeUniformStateValue();
+          const amp = encodeReal(1 / Math.sqrt(span));
+          const arr = new Array(this.M);
+          for (let i = 0; i < this.M; i++) {
+            if (i >= lo && i <= hi) {
+              arr[i] = { real: amp, imag: 0 };
+            } else {
+              arr[i] = { real: 0, imag: 0 };
+            }
+          }
+          const ref = this.allocateUState(arr);
+          this.normalizeState(ref);
+          return { kind: 'ustate', ref };
+        }
+
+        stateFromMask(maskValue) {
+          if (!maskValue || maskValue.kind !== 'uvalue') throw new Error('state_from_mask expects a UValue mask');
+          const mask = this.heap.values[maskValue.ref];
+          const arr = new Array(this.M);
+          let hasSupport = false;
+          for (let i = 0; i < this.M; i++) {
+            const entry = mask[i] || { real: 0, imag: 0 };
+            if (entry.novelId) {
+              arr[i] = { real: 0, imag: 0 };
+              continue;
+            }
+            const weight = Math.max(0, decodeReal(entry.real));
+            if (weight > 0) hasSupport = true;
+            const amp = weight > 0 ? encodeReal(Math.sqrt(weight)) : 0;
+            arr[i] = { real: amp, imag: 0 };
+          }
+          if (!hasSupport) return this.makeUniformStateValue();
+          const ref = this.allocateUState(arr);
+          this.normalizeState(ref);
+          return { kind: 'ustate', ref };
+        }
+
+        computeExpectation(uvalueRef, stateRef) {
+          const values = this.heap.values[uvalueRef];
+          const state = this.heap.states[stateRef];
+          if (!values || !state) throw new Error('Invalid references for expectation');
+          this.assertDimension(values, 'UValue');
+          this.assertDimension(state, 'UState');
+          let accRe = 0;
+          let accIm = 0;
+          let weightSum = 0;
+          for (let i = 0; i < this.M; i++) {
+            const psi2Word = magnitudeSquared(state[i]);
+            const weight = decodeReal(psi2Word);
+            weightSum += weight;
+            const sample = values[i];
+            if (sample?.novelId) continue;
+            accRe += decodeReal(sample.real) * weight;
+            accIm += decodeReal(sample.imag) * weight;
+          }
+          const safeWeight = weightSum || 1;
+          return { re: accRe / safeWeight, im: accIm / safeWeight, weight: safeWeight };
+        }
+
+        computeVariance(uvalueRef, stateRef, mean) {
+          const values = this.heap.values[uvalueRef];
+          const state = this.heap.states[stateRef];
+          if (!values || !state) throw new Error('Invalid references for variance');
+          this.assertDimension(values, 'UValue');
+          this.assertDimension(state, 'UState');
+          let acc = 0;
+          let weightSum = 0;
+          for (let i = 0; i < this.M; i++) {
+            const psi2Word = magnitudeSquared(state[i]);
+            const weight = decodeReal(psi2Word);
+            weightSum += weight;
+            const sample = values[i];
+            if (sample?.novelId) continue;
+            const diffRe = decodeReal(sample.real) - mean.re;
+            const diffIm = decodeReal(sample.imag) - mean.im;
+            const mag2 = diffRe * diffRe + diffIm * diffIm;
+            acc += mag2 * weight;
+          }
+          const safeWeight = weightSum || 1;
+          return acc / safeWeight;
+        }
+
+        computeDensity(uvalueRef, stateRef) {
+          const mask = this.heap.values[uvalueRef];
+          const state = this.heap.states[stateRef];
+          if (!mask || !state) throw new Error('Invalid references for density');
+          this.assertDimension(mask, 'UValue');
+          this.assertDimension(state, 'UState');
+          let acc = 0;
+          let weightSum = 0;
+          for (let i = 0; i < this.M; i++) {
+            const psi2Word = magnitudeSquared(state[i]);
+            const weight = decodeReal(psi2Word);
+            weightSum += weight;
+            const sample = mask[i];
+            if (sample?.novelId) continue;
+            const value = Math.max(0, Math.min(1, decodeReal(sample.real)));
+            acc += value * weight;
+          }
+          const safeWeight = weightSum || 1;
+          return acc / safeWeight;
+        }
+
+        makeScalarValue(real, imag = 0) {
+          const safeReal = Number.isFinite(real) ? real : 0;
+          const safeImag = Number.isFinite(imag) ? imag : 0;
+          return {
+            kind: 'scalar',
+            data: { real: encodeReal(safeReal), imag: encodeReal(safeImag) }
+          };
+        }
+
+        sampleUValueAt(uvalueRef, index) {
+          const arr = this.heap.values[uvalueRef] ?? [];
+          const clamped = this.clampIndexPosition(index);
+          const sample = arr[clamped];
+          if (!sample) return { real: 0, imag: 0 };
+          return cloneComplex(sample);
+        }
+
+        buildCollection(uvalueArgs) {
+          const out = Array.from({ length: this.M }, () => ({ real: 0, imag: 0 }));
+          const limit = Math.min(this.M, uvalueArgs.length);
+          for (let i = 0; i < limit; i++) {
+            const value = this.ensureUValueArg(uvalueArgs[i], 'collection');
+            out[i] = this.sampleUValueAt(value.ref, i);
+          }
+          const ref = this.allocateUValue(out);
+          return { kind: 'uvalue', ref };
+        }
+
+        buildMaskRange(startValue, endValue) {
+          const lo = Math.max(0, Math.min(startValue, endValue));
+          const hi = Math.max(0, Math.max(startValue, endValue));
+          const start = Math.min(this.M, Math.floor(lo));
+          const endExclusive = Math.min(this.M, Math.ceil(hi));
+          const one = encodeReal(1);
+          const out = new Array(this.M);
+          for (let i = 0; i < this.M; i++) {
+            const on = i >= start && i < endExclusive ? one : 0;
+            out[i] = { real: on, imag: 0 };
+          }
+          const ref = this.allocateUValue(out);
+          return { kind: 'uvalue', ref };
+        }
+
+        buildMaskThreshold(valueRef, thresholdRef) {
+          const values = this.heap.values[valueRef] ?? [];
+          const thresholds = this.heap.values[thresholdRef] ?? [];
+          const one = encodeReal(1);
+          const out = new Array(this.M);
+          for (let i = 0; i < this.M; i++) {
+            const left = values[i];
+            const right = thresholds[i];
+            if (!left || left.novelId || !right || right.novelId) {
+              out[i] = { real: 0, imag: 0 };
+              continue;
+            }
+            const flag = decodeReal(left.real) >= decodeReal(right.real) ? one : 0;
+            out[i] = { real: flag, imag: 0 };
+          }
+          const ref = this.allocateUValue(out);
+          return { kind: 'uvalue', ref };
+        }
+
+        coerceScalarLike(value, label) {
+          if (!value) throw new Error(`${label} expects scalar or UValue`);
+          if (value.kind === 'scalar') return cloneComplex(value.data);
+          if (value.kind === 'uvalue') return cloneComplex(this.sampleUValueAt(value.ref, 0));
+          throw new Error(`${label} expects scalar or UValue`);
+        }
+
+        buildInjection(valueArg, indexArg, dimensionArg) {
+          const payload = this.coerceScalarLike(valueArg, 'inject value');
+          const index = this.scalarToFloat(indexArg, 'inject index');
+          const rawDim = dimensionArg ? this.scalarToFloat(dimensionArg, 'inject dimension') : this.M;
+          const target = clampMicrostateCount(Math.max(1, Math.floor(rawDim)));
+          this.ensureMicrostates(target);
+          const arr = Array.from({ length: this.M }, () => ({ real: 0, imag: 0 }));
+          const clamped = this.clampIndexPosition(index);
+          arr[clamped] = cloneComplex(payload);
+          const ref = this.allocateUValue(arr);
+          return { kind: 'uvalue', ref };
+        }
+
+        applyUnaryLiftHelper(fnName, arg, label) {
+          const value = this.ensureUValueArg(arg, label);
+          const fn = resolveUnaryFunction(fnName);
+          if (!fn) throw new Error(`Unknown lift1 function ${fnName}`);
+          const arr = this.heap.values[value.ref] ?? [];
+          this.assertDimension(arr, label);
+          const out = new Array(this.M);
+          for (let i = 0; i < this.M; i++) {
+            const sample = arr[i] ?? { real: 0, imag: 0 };
+            out[i] = fn(sample, i, this.heap.novels);
+          }
+          const ref = this.allocateUValue(out);
+          return { kind: 'uvalue', ref };
+        }
+
+        applyBinaryLiftHelper(fnName, leftArg, rightArg, label) {
+          const left = this.ensureUValueArg(leftArg, `${label} left operand`);
+          const right = this.ensureUValueArg(rightArg, `${label} right operand`);
+          const fn = BinaryLibrary[fnName];
+          if (!fn) throw new Error(`Unknown lift2 function ${fnName}`);
+          const arrL = this.heap.values[left.ref] ?? [];
+          const arrR = this.heap.values[right.ref] ?? [];
+          this.assertDimension(arrL, `${label} left operand`);
+          this.assertDimension(arrR, `${label} right operand`);
+          const out = new Array(this.M);
+          for (let i = 0; i < this.M; i++) {
+            const a = arrL[i] ?? { real: 0, imag: 0 };
+            const b = arrR[i] ?? { real: 0, imag: 0 };
+            out[i] = fn(a, b, i, this.heap.novels);
+          }
+          const ref = this.allocateUValue(out);
+          return { kind: 'uvalue', ref };
+        }
+
+        combineUValues(leftArg, rightArg, label, reducer) {
+          const left = this.ensureUValueArg(leftArg, `${label} left operand`);
+          const right = this.ensureUValueArg(rightArg, `${label} right operand`);
+          const arrL = this.heap.values[left.ref] ?? [];
+          const arrR = this.heap.values[right.ref] ?? [];
+          this.assertDimension(arrL, `${label} left operand`);
+          this.assertDimension(arrR, `${label} right operand`);
+          const out = new Array(this.M);
+          for (let i = 0; i < this.M; i++) {
+            const a = arrL[i] ?? { real: 0, imag: 0 };
+            const b = arrR[i] ?? { real: 0, imag: 0 };
+            out[i] = reducer(a, b);
+          }
+          const ref = this.allocateUValue(out);
+          return { kind: 'uvalue', ref };
+        }
+
+        negateUValue(arg, label) {
+          const value = this.ensureUValueArg(arg, label);
+          const arr = this.heap.values[value.ref] ?? [];
+          const out = new Array(this.M);
+          for (let i = 0; i < this.M; i++) {
+            const sample = arr[i] ?? { real: 0, imag: 0 };
+            out[i] = {
+              real: clampWord(-sample.real),
+              imag: clampWord(-sample.imag),
+              novelId: sample.novelId
+            };
+          }
+          const ref = this.allocateUValue(out);
+          return { kind: 'uvalue', ref };
+        }
+
+        formatUValueSlice(ref, limit = 96) {
+          const arr = this.heap.values[ref] ?? [];
+          if (!arr.length) return 'No microstates available.';
+          const lines = [];
+          const span = Math.min(arr.length, limit);
+          for (let i = 0; i < span; i++) {
+            const sample = arr[i] ?? { real: 0, imag: 0 };
+            const { re, im } = complexToFloat(sample);
+            const novel = sample.novelId ? ` novel#${sample.novelId}` : '';
+            lines.push(`${i.toString().padStart(4, '0')}: ${re.toFixed(4)} + ${im.toFixed(4)}i${novel}`);
+          }
+          if (span < arr.length) lines.push(`... truncated ${arr.length - span} rows`);
+          return lines.join('\n');
+        }
+
+        extractMagnitudeSeries(ref, limit = 512) {
+          const arr = this.heap.values[ref] ?? [];
+          const span = Math.min(arr.length, limit);
+          const series = new Array(span);
+          for (let i = 0; i < span; i++) {
+            const sample = arr[i] ?? { real: 0, imag: 0 };
+            const magnitude = Math.sqrt(Math.max(0, decodeReal(magnitudeSquared(sample))));
+            series[i] = magnitude;
+          }
+          return series;
+        }
+
+        assertDimension(arr, label) {
+          if (!Array.isArray(arr)) throw new Error(`${label} storage missing`);
+          if (arr.length !== this.M) {
+            throw new Error(`${label} dimension mismatch: expected ${this.M} microstates, received ${arr.length}`);
+          }
+        }
+
+        makeDeltaState(indexValue) {
+          const idx = this.clampIndexPosition(indexValue);
+          const arr = Array.from({ length: this.M }, (_, i) => ({ real: i === idx ? encodeReal(1) : 0, imag: 0 }));
+          const ref = this.allocateUState(arr);
+          this.normalizeState(ref);
+          return { kind: 'ustate', ref };
+        }
+
+        performRead(valueRef, stateRef) {
+          const f = this.heap.values[valueRef];
+          const psi = this.heap.states[stateRef];
+          if (!f || !psi) throw new Error('Invalid references for read');
+          this.assertDimension(f, 'UValue');
+          this.assertDimension(psi, 'UState');
+          let accReal = 0;
+          let accImag = 0;
+          for (let i = 0; i < this.M; i++) {
+            const psi2 = magnitudeSquared(psi[i]);
+            if (f[i]?.novelId) continue;
+            accReal = addQ16(accReal, mulQ16(f[i].real, psi2));
+            accImag = addQ16(accImag, mulQ16(f[i].imag, psi2));
+          }
+          return { real: accReal, imag: accImag };
+        }
+
+        computeSmoothness(valueRef) {
+          const uniform = this.makeUniformStateValue();
+          const values = this.heap.values[valueRef];
+          const psi = this.heap.states[uniform.ref];
+          if (!values || !psi) return this.makeScalarValue(0, 0);
+          let acc = 0;
+          for (let i = 0; i < this.M; i++) {
+            const psi2 = decodeReal(magnitudeSquared(psi[i]));
+            const sample = values[i];
+            if (sample?.novelId) continue;
+            const mag = Math.sqrt(Math.max(0, decodeReal(magnitudeSquared(sample))));
+            acc += mag * psi2;
+          }
+          return this.makeScalarValue(acc, 0);
+        }
+
+        invokeHelper(name, args) {
+          switch (name) {
+            case 'uniform_state':
+            case 'psi_uniform':
+              return this.makeUniformStateValue();
+            case 'state': {
+              const input = this.ensureUValueArg(args[0], 'state');
+              const arr = this.heap.values[input.ref].map(cloneComplex);
+              const ref = this.allocateUState(arr);
+              this.normalizeState(ref);
+              return { kind: 'ustate', ref };
+            }
+            case 'delta_state': {
+              const index = this.scalarToFloat(args[0], 'delta_state index');
+              return this.makeDeltaState(index);
+            }
+            case 'state_from_mask': {
+              const mask = this.ensureUValueArg(args[0], 'state_from_mask');
+              return this.stateFromMask(mask);
+            }
+            case 'state_range': {
+              const start = this.scalarToFloat(args[0], 'state_range start');
+              const end = this.scalarToFloat(args[1], 'state_range end');
+              return this.stateFromRange(start, end);
+            }
+            case 'mask_range': {
+              const start = this.scalarToFloat(args[0], 'mask_range start');
+              const end = this.scalarToFloat(args[1], 'mask_range end');
+              return this.buildMaskRange(start, end);
+            }
+            case 'mask_threshold': {
+              const value = this.ensureUValueArg(args[0], 'mask_threshold value');
+              const threshold = this.ensureUValueArg(args[1], 'mask_threshold threshold');
+              return this.buildMaskThreshold(value.ref, threshold.ref);
+            }
+            case 'mask_lt':
+              return this.applyBinaryLiftHelper('lt', args[0], args[1], 'mask_lt');
+            case 'mask_gt':
+              return this.applyBinaryLiftHelper('gt', args[0], args[1], 'mask_gt');
+            case 'mask_eq':
+              return this.applyBinaryLiftHelper('eq', args[0], args[1], 'mask_eq');
+            case 'collection':
+              return this.buildCollection(args);
+            case 'inject':
+              return this.buildInjection(args[0], args[1], args[2]);
+            case 'absU':
+              return this.applyUnaryLiftHelper('abs', args[0], 'absU');
+            case 'sqrtU':
+              return this.applyUnaryLiftHelper('sqrt', args[0], 'sqrtU');
+            case 'negU':
+              return this.negateUValue(args[0], 'negU');
+            case 'normU':
+              return this.applyUnaryLiftHelper('norm', args[0], 'normU');
+            case 'addU':
+              return this.combineUValues(args[0], args[1], 'addU', (a, b) => {
+                const sum = complexAdd(a, b);
+                if (!sum.novelId) sum.novelId = a.novelId || b.novelId;
+                return sum;
+              });
+            case 'subU':
+              return this.combineUValues(args[0], args[1], 'subU', (a, b) => {
+                const neg = { real: clampWord(-b.real), imag: clampWord(-b.imag), novelId: b.novelId };
+                const diff = complexAdd(a, neg);
+                if (!diff.novelId) diff.novelId = a.novelId || b.novelId;
+                return diff;
+              });
+            case 'mulU':
+              return this.combineUValues(args[0], args[1], 'mulU', (a, b) => {
+                const prod = complexMul(a, b);
+                prod.novelId = a.novelId || b.novelId;
+                return prod;
+              });
+            case 'divU':
+              return this.applyBinaryLiftHelper('divide', args[0], args[1], 'divU');
+            case 'powU':
+              return this.applyBinaryLiftHelper('pow', args[0], args[1], 'powU');
+            case 'printU': {
+              const value = this.ensureUValueArg(args[0], 'printU');
+              if (this.diagnostics && typeof this.diagnostics.print === 'function') {
+                this.diagnostics.print(this.formatUValueSlice(value.ref, 128));
+              }
+              return null;
+            }
+            case 'plotU': {
+              const value = this.ensureUValueArg(args[0], 'plotU');
+              if (this.diagnostics && typeof this.diagnostics.plot === 'function') {
+                this.diagnostics.plot(this.extractMagnitudeSeries(value.ref, Math.min(this.M, 512)));
+              }
+              return null;
+            }
+            case 'meanU': {
+              const value = this.ensureUValueArg(args[0], 'meanU');
+              const state = args[1] ? this.resolveStateValue(args[1]) : this.makeUniformStateValue();
+              const data = this.performRead(value.ref, state.ref);
+              return { kind: 'scalar', data };
+            }
+            case 'sumU': {
+              const value = this.ensureUValueArg(args[0], 'sumU');
+              const state = args[1] ? this.resolveStateValue(args[1]) : this.makeUniformStateValue();
+              const data = this.performRead(value.ref, state.ref);
+              const { re, im } = complexToFloat(data);
+              return this.makeScalarValue(re * this.M, im * this.M);
+            }
+            case 'integralU': {
+              const value = this.ensureUValueArg(args[0], 'integralU');
+              const state = args[1] ? this.resolveStateValue(args[1]) : this.makeUniformStateValue();
+              const mean = this.computeExpectation(value.ref, state.ref);
+              return this.makeScalarValue(mean.re * this.M, mean.im * this.M);
+            }
+            case 'varianceU': {
+              const value = this.ensureUValueArg(args[0], 'varianceU');
+              const state = args[1] ? this.resolveStateValue(args[1]) : this.makeUniformStateValue();
+              const mean = this.computeExpectation(value.ref, state.ref);
+              const variance = this.computeVariance(value.ref, state.ref, mean);
+              return this.makeScalarValue(variance, 0);
+            }
+            case 'stddevU':
+            case 'stdU': {
+              const value = this.ensureUValueArg(args[0], name);
+              const state = args[1] ? this.resolveStateValue(args[1]) : this.makeUniformStateValue();
+              const mean = this.computeExpectation(value.ref, state.ref);
+              const variance = this.computeVariance(value.ref, state.ref, mean);
+              return this.makeScalarValue(Math.sqrt(Math.max(0, variance)), 0);
+            }
+            case 'densityU': {
+              const mask = this.ensureUValueArg(args[0], 'densityU');
+              const state = args[1] ? this.resolveStateValue(args[1]) : this.makeUniformStateValue();
+              const density = this.computeDensity(mask.ref, state.ref);
+              return this.makeScalarValue(Math.max(0, Math.min(1, density)), 0);
+            }
+            case 'integrate': {
+              const value = this.ensureUValueArg(args[0], 'integrate');
+              const state = this.resolveStateValue(args[1]);
+              const data = this.performRead(value.ref, state.ref);
+              return { kind: 'scalar', data };
+            }
+            case 'mean': {
+              const value = this.ensureUValueArg(args[0], 'mean');
+              const state = this.makeUniformStateValue();
+              const data = this.performRead(value.ref, state.ref);
+              return { kind: 'scalar', data };
+            }
+            case 'variance': {
+              const value = this.ensureUValueArg(args[0], 'variance');
+              const state = this.resolveStateValue(args[1]);
+              const mean = this.computeExpectation(value.ref, state.ref);
+              const variance = this.computeVariance(value.ref, state.ref, mean);
+              return this.makeScalarValue(variance, 0);
+            }
+            case 'smoothness': {
+              const value = this.ensureUValueArg(args[0], 'smoothness');
+              return this.computeSmoothness(value.ref);
+            }
+            default:
+              throw new Error(`Unknown helper ${name}`);
+          }
+        }
+
+        describeValue(value) {
+          if (!value) return 'void';
+          if (value.kind === 'scalar') {
+            const { re, im } = complexToFloat(value.data);
+            return `(${re.toFixed(4)} + ${im.toFixed(4)}i)`;
+          }
+          if (value.kind === 'uvalue') {
+            const arr = this.heap.values[value.ref];
+            const sample = arr[0];
+            const { re, im } = complexToFloat(sample);
+            return `μ0=${re.toFixed(3)}+${im.toFixed(3)}i`;
+          }
+          if (value.kind === 'ustate') {
+            const norm = this.computeStateNorm(value.ref);
+            return `norm≈${norm.toFixed(4)}`;
+          }
+          return 'novel';
+        }
+
+        computeStateNorm(ref) {
+          const state = this.heap.states[ref];
+          let sum = 0;
+          for (const c of state) sum = addQ16(sum, magnitudeSquared(c));
+          return Math.sqrt(Math.max(0, decodeReal(sum)));
+        }
+
+        execute(program) {
+          this.ip = 0;
+          this.trace = [];
+          while (this.ip < program.length) {
+            const instr = program[this.ip];
+            const { op, args } = instr;
+            this.trace.push(`${this.ip.toString().padStart(3, '0')} | ${op} ${args.map(String).join(', ')}`.trim());
+            switch (op) {
+              case 'PUSH_SCALAR': {
+                this.push({ kind: 'scalar', data: { real: args[0], imag: args[1] } });
+                break;
+              }
+              case 'MAKE_CONST_UVALUE': {
+                const scalar = this.pop();
+                if (scalar.kind !== 'scalar') throw new Error('MAKE_CONST_UVALUE expects scalar');
+                const arr = Array.from({ length: this.M }, () => cloneComplex(scalar.data));
+                const ref = this.allocateUValue(arr);
+                this.push({ kind: 'uvalue', ref });
+                break;
+              }
+              case 'MAKE_STATE': {
+                this.push(this.makeUniformStateValue());
+                break;
+              }
+              case 'UVALUE_TO_STATE': {
+                const value = this.pop();
+                if (value.kind !== 'uvalue') throw new Error(`UVALUE_TO_STATE expected UValue but received ${value.kind}`);
+                const arr = this.heap.values[value.ref].map(cloneComplex);
+                const ref = this.allocateUState(arr);
+                this.normalizeState(ref);
+                this.push({ kind: 'ustate', ref });
+                break;
+              }
+              case 'LOAD': {
+                this.push(this.envGet(args[0]));
+                break;
+              }
+              case 'STORE': {
+                const value = this.pop();
+                this.envSet(args[0], value);
+                break;
+              }
+              case 'UADD': {
+                const b = this.pop();
+                const a = this.pop();
+                if (a.kind !== 'uvalue' || b.kind !== 'uvalue') throw new Error('UADD operands must be UValue');
+                const arrA = this.heap.values[a.ref];
+                const arrB = this.heap.values[b.ref];
+                const out = new Array(this.M);
+                for (let i = 0; i < this.M; i++) {
+                  const ca = arrA[i];
+                  const cb = arrB[i];
+                  const sum = complexAdd(ca, cb);
+                  sum.novelId = ca.novelId || cb.novelId;
+                  out[i] = sum;
+                }
+                const ref = this.allocateUValue(out);
+                this.push({ kind: 'uvalue', ref });
+                break;
+              }
+              case 'UMUL': {
+                const b = this.pop();
+                const a = this.pop();
+                if (a.kind !== 'uvalue' || b.kind !== 'uvalue') throw new Error('UMUL operands must be UValue');
+                const arrA = this.heap.values[a.ref];
+                const arrB = this.heap.values[b.ref];
+                const out = new Array(this.M);
+                for (let i = 0; i < this.M; i++) {
+                  const prod = complexMul(arrA[i], arrB[i]);
+                  prod.novelId = arrA[i].novelId || arrB[i].novelId;
+                  out[i] = prod;
+                }
+                const ref = this.allocateUValue(out);
+                this.push({ kind: 'uvalue', ref });
+                break;
+              }
+              case 'SSCALE': {
+                const second = this.pop();
+                const first = this.pop();
+                if (first.kind === 'scalar' && second.kind === 'scalar') {
+                  const product = complexMul(first.data, second.data);
+                  const arr = Array.from({ length: this.M }, () => cloneComplex(product));
+                  const ref = this.allocateUValue(arr);
+                  this.push({ kind: 'uvalue', ref });
+                  break;
+                }
+                let scalar, uval;
+                if (first.kind === 'scalar' && second.kind === 'uvalue') {
+                  scalar = first;
+                  uval = second;
+                } else if (first.kind === 'uvalue' && second.kind === 'scalar') {
+                  scalar = second;
+                  uval = first;
+                } else {
+                  throw new Error(`SSCALE requires a scalar and a UValue (or two scalars) but received ${first.kind} and ${second.kind}`);
+                }
+                const arr = this.heap.values[uval.ref];
+                const out = new Array(this.M);
+                for (let i = 0; i < this.M; i++) {
+                  const scaled = complexScale(scalar.data, arr[i]);
+                  scaled.novelId = arr[i].novelId;
+                  out[i] = scaled;
+                }
+                const ref = this.allocateUValue(out);
+                this.push({ kind: 'uvalue', ref });
+                break;
+              }
+              case 'LIFT1': {
+                const value = this.pop();
+                if (value.kind !== 'uvalue') throw new Error(`LIFT1 expects UValue but received ${value.kind}`);
+                const fn = resolveUnaryFunction(args[0]);
+                if (!fn) {
+                  const knownUnary = Object.keys(UnaryLibrary).join(', ');
+                  throw new Error(`Unknown lift1 function '${args[0]}'. Known functions: ${knownUnary} (plus windowWeight_* helpers).`);
+                }
+                const arr = this.heap.values[value.ref];
+                const out = new Array(this.M);
+                for (let i = 0; i < this.M; i++) {
+                  const result = fn(arr[i], i, this.heap.novels);
+                  out[i] = result;
+                }
+                const ref = this.allocateUValue(out);
+                this.push({ kind: 'uvalue', ref });
+                break;
+              }
+              case 'LIFT2': {
+                const right = this.pop();
+                const left = this.pop();
+                if (left.kind !== 'uvalue' || right.kind !== 'uvalue') {
+                  throw new Error(`LIFT2 expects UValues but received ${left.kind} | ${right.kind}`);
+                }
+                const fn = BinaryLibrary[args[0]];
+                if (!fn) {
+                  const knownBinary = Object.keys(BinaryLibrary).join(', ');
+                  throw new Error(`Unknown lift2 function '${args[0]}'. Known functions: ${knownBinary}.`);
+                }
+                const arrL = this.heap.values[left.ref];
+                const arrR = this.heap.values[right.ref];
+                const out = new Array(this.M);
+                for (let i = 0; i < this.M; i++) {
+                  const result = fn(arrL[i], arrR[i], i, this.heap.novels);
+                  out[i] = result;
+                }
+                const ref = this.allocateUValue(out);
+                this.push({ kind: 'uvalue', ref });
+                break;
+              }
+              case 'READ': {
+                const state = this.pop();
+                const value = this.pop();
+                if (value.kind !== 'uvalue' || state.kind !== 'ustate') {
+                  throw new Error(`READ expects UValue | UState but received ${value.kind} | ${state.kind}`);
+                }
+                const data = this.performRead(value.ref, state.ref);
+                this.push({ kind: 'scalar', data });
+                break;
+              }
+              case 'NORM_STATE': {
+                const state = this.pop();
+                if (state.kind !== 'ustate') throw new Error(`NORM_STATE expects UState but received ${state.kind}`);
+                this.normalizeState(state.ref);
+                this.push(state);
+                break;
+              }
+              case 'D_TRANSFORM': {
+                const state = this.pop();
+                if (state.kind !== 'ustate') throw new Error(`D expects UState but received ${state.kind}`);
+                const targetSize = args[0] ?? this.M;
+                this.ensureMicrostates(targetSize);
+                const arr = this.heap.states[state.ref];
+                const rotated = new Array(this.M);
+                const offsetRaw = args[0] ?? 0;
+                const offset = ((offsetRaw % this.M) + this.M) % this.M;
+                for (let i = 0; i < this.M; i++) {
+                  const target = (i + offset) % this.M;
+                  rotated[target] = cloneComplex(arr[i]);
+                }
+                const ref = this.allocateUState(rotated);
+                this.normalizeState(ref);
+                this.push({ kind: 'ustate', ref });
+                break;
+              }
+              case 'CALL_HELPER': {
+                const [helperName, argc = 0] = args;
+                const callArgs = [];
+                for (let i = 0; i < argc; i++) {
+                  callArgs.unshift(this.pop());
+                }
+                const result = this.invokeHelper(helperName, callArgs);
+                if (result) this.push(result);
+                break;
+              }
+              case 'BUILD_UVALUE_OF': {
+                const indexes = args[0] ?? [];
+                const out = Array.from({ length: this.M }, () => ({ real: 0, imag: 0 }));
+                const values = new Array(indexes.length);
+                for (let i = indexes.length - 1; i >= 0; i--) {
+                  values[i] = this.ensureUValueArg(this.pop(), 'uvalue_of');
+                }
+                for (let i = 0; i < indexes.length; i++) {
+                  const idx = this.clampIndexPosition(indexes[i]);
+                  out[idx] = this.sampleUValueAt(values[i].ref, idx);
+                }
+                const ref = this.allocateUValue(out);
+                this.push({ kind: 'uvalue', ref });
+                break;
+              }
+              case 'HALT': {
+                this.lastValue = this.stack[this.stack.length - 1] ?? null;
+                return this.lastValue;
+              }
+              default:
+                throw new Error(`Unknown opcode ${op}`);
+            }
+            this.ip += 1;
+          }
+          return this.lastValue;
+        }
+
+        snapshotBindings() {
+          return this.order.map((name) => {
+            const value = this.env.get(name);
+            if (!value) return null;
+            return {
+              name,
+              kind: value.kind,
+              summary: this.describeValue(value)
+            };
+          }).filter(Boolean);
+        }
+
+        listNames(kind) {
+          return this.order.filter((name) => this.env.get(name)?.kind === kind);
+        }
+
+        readNamed(valueName, stateName) {
+          const value = this.env.get(valueName);
+          const state = this.env.get(stateName);
+          if (!value || !state) throw new Error('Missing binding');
+          if (value.kind !== 'uvalue' || state.kind !== 'ustate') throw new Error('read() requires value + state');
+          const data = this.performRead(value.ref, state.ref);
+          return complexToFloat(data);
+        }
+      }
+
+      const UnaryLibrary = {
+        sqrt: (c, index, tracker) => {
+          if (c.novelId) return cloneComplex(c);
+          if (c.imag !== 0) {
+            const id = tracker.record('sqrt', [complexToFloat(c)], index);
+            return { real: 0, imag: 0, novelId: id };
+          }
+          const value = Math.sqrt(Math.max(0, decodeReal(c.real)));
+          return { real: encodeReal(value), imag: 0 };
+        },
+        sin: (c, index, tracker) => {
+          if (c.novelId) return cloneComplex(c);
+          if (c.imag !== 0) {
+            const id = tracker.record('sin', [complexToFloat(c)], index);
+            return { real: 0, imag: 0, novelId: id };
+          }
+          const value = Math.sin(decodeReal(c.real));
+          return { real: encodeReal(value), imag: 0 };
+        },
+        cos: (c, index, tracker) => {
+          if (c.novelId) return cloneComplex(c);
+          if (c.imag !== 0) {
+            const id = tracker.record('cos', [complexToFloat(c)], index);
+            return { real: 0, imag: 0, novelId: id };
+          }
+          const value = Math.cos(decodeReal(c.real));
+          return { real: encodeReal(value), imag: 0 };
+        },
+        log: (c, index, tracker) => {
+          if (c.novelId) return cloneComplex(c);
+          if (c.imag !== 0 || c.real <= 0) {
+            const id = tracker.record('log', [complexToFloat(c)], index);
+            return { real: 0, imag: 0, novelId: id };
+          }
+          const value = Math.log(decodeReal(c.real));
+          return { real: encodeReal(value), imag: 0 };
+        },
+        conj: (c) => ({ real: c.real, imag: -c.imag, novelId: c.novelId }),
+        index: (c, i) => ({ real: encodeReal(i), imag: 0 }),
+        isPrime: (c) => {
+          if (c.novelId) return cloneComplex(c);
+          const n = toInt(c.real);
+          const value = isPrimeInt(Math.abs(n)) ? 1 : 0;
+          return { real: encodeReal(value), imag: 0 };
+        },
+        abs: (c) => {
+          if (c.novelId) return cloneComplex(c);
+          const magnitude = Math.sqrt(Math.max(0, decodeReal(magnitudeSquared(c))));
+          return { real: encodeReal(magnitude), imag: 0 };
+        },
+        norm: (c) => {
+          if (c.novelId) return cloneComplex(c);
+          const magnitude = Math.sqrt(Math.max(0, decodeReal(magnitudeSquared(c))));
+          return { real: encodeReal(magnitude), imag: 0 };
+        }
+      };
+
+      const UnaryCache = new Map();
+
+      function resolveUnaryFunction(name) {
+        if (UnaryCache.has(name)) return UnaryCache.get(name);
+        if (UnaryLibrary[name]) {
+          UnaryCache.set(name, UnaryLibrary[name]);
+          return UnaryLibrary[name];
+        }
+        const windowMatch = /^windowWeight_(-?\d+(?:\.\d+)?)_(-?\d+(?:\.\d+)?)$/i.exec(name);
+        if (windowMatch) {
+          const center = parseFloat(windowMatch[1]);
+          const width = Math.abs(parseFloat(windowMatch[2]));
+          const fn = (c, index) => {
+            const half = width / 2;
+            const weight = Math.abs(index - center) <= half ? 1 : 0;
+            return { real: encodeReal(weight), imag: 0 };
+          };
+          UnaryCache.set(name, fn);
+          return fn;
+        }
+        return null;
+      }
+
+      const BinaryLibrary = {
+        divide: (a, b, index, tracker) => {
+          if (a.novelId) return cloneComplex(a);
+          if (b.novelId) return cloneComplex(b);
+          const denom = decodeReal(magnitudeSquared(b));
+          if (Math.abs(denom) < 1e-6) {
+            const id = tracker.record('divide', [complexToFloat(a), complexToFloat(b)], index);
+            return { real: 0, imag: 0, novelId: id };
+          }
+          const af = complexToFloat(a);
+          const bf = complexToFloat(b);
+          const real = (af.re * bf.re + af.im * bf.im) / denom;
+          const imag = (af.im * bf.re - af.re * bf.im) / denom;
+          return floatToComplex(real, imag);
+        },
+        pow: (a, b, index, tracker) => {
+          if (a.novelId || b.novelId) return cloneComplex(a.novelId ? a : b);
+          if (a.imag !== 0 || b.imag !== 0) {
+            const id = tracker.record('pow', [complexToFloat(a), complexToFloat(b)], index);
+            return { real: 0, imag: 0, novelId: id };
+          }
+          const value = Math.pow(decodeReal(a.real), decodeReal(b.real));
+          return { real: encodeReal(value), imag: 0 };
+        },
+        blend: (a, b) => {
+          if (a.novelId) return cloneComplex(a);
+          if (b.novelId) return cloneComplex(b);
+          const real = encodeReal((decodeReal(a.real) + decodeReal(b.real)) / 2);
+          const imag = encodeReal((decodeReal(a.imag) + decodeReal(b.imag)) / 2);
+          return { real, imag };
+        },
+        lt: (a, b) => {
+          if (a.novelId) return cloneComplex(a);
+          if (b.novelId) return cloneComplex(b);
+          const result = decodeReal(a.real) < decodeReal(b.real) ? 1 : 0;
+          return { real: encodeReal(result), imag: 0 };
+        },
+        gt: (a, b) => {
+          if (a.novelId) return cloneComplex(a);
+          if (b.novelId) return cloneComplex(b);
+          const result = decodeReal(a.real) > decodeReal(b.real) ? 1 : 0;
+          return { real: encodeReal(result), imag: 0 };
+        },
+        ge: (a, b) => {
+          if (a.novelId) return cloneComplex(a);
+          if (b.novelId) return cloneComplex(b);
+          const result = decodeReal(a.real) >= decodeReal(b.real) ? 1 : 0;
+          return { real: encodeReal(result), imag: 0 };
+        },
+        le: (a, b) => {
+          if (a.novelId) return cloneComplex(a);
+          if (b.novelId) return cloneComplex(b);
+          const result = decodeReal(a.real) <= decodeReal(b.real) ? 1 : 0;
+          return { real: encodeReal(result), imag: 0 };
+        },
+        eq: (a, b) => {
+          if (a.novelId) return cloneComplex(a);
+          if (b.novelId) return cloneComplex(b);
+          const af = complexToFloat(a);
+          const bf = complexToFloat(b);
+          const result = af.re === bf.re && af.im === bf.im ? 1 : 0;
+          return { real: encodeReal(result), imag: 0 };
+        }
+      };
+
+      function execute(source) {
+        resetDiagnostics();
+        try {
+          const tokens = tokenize(source);
+          const parser = new Parser(tokens);
+          const ast = parser.parseProgram();
+          const compiler = new Compiler();
+          const compilation = compiler.compile(ast);
+          const vm = new VirtualMachine({
+            microstates: getConfiguredMicrostates(),
+            diagnostics: {
+              print: appendDiagnosticPrint,
+              plot: renderDiagnosticPlot
+            }
+          });
+          vm.execute(compilation.instructions);
+          currentVm = vm;
+
+          renderOutput(vm.lastValue, compilation.finalType);
+          renderAst(ast);
+          renderValues(vm.snapshotBindings());
+          renderDebug(tokens, compilation.instructions, vm.trace);
+          renderReadControls(vm);
+          renderInspectors(vm);
+          ui.status.textContent = `Execution successful. Microstates=${vm.M}.`;
+        } catch (err) {
+          currentVm = null;
+          ui.output.textContent = 'Execution failed.';
+          ui.status.textContent = err.message;
+          ui.ast.textContent = '';
+          ui.valueTable.innerHTML = '';
+          ui.readTester.innerHTML = '';
+          ui.readResult.textContent = '';
+          ui.debug.textContent = err.stack ?? err.message;
+          resetInspectors();
+        }
+      }
+
+      function renderOutput(value, finalType) {
+        if (!value) {
+          ui.output.textContent = 'Program produced no terminal value.';
+          return;
+        }
+        if (finalType === 'scalar' && value.kind === 'scalar') {
+          const { re, im } = complexToFloat(value.data);
+          const micro = currentVm ? ` (M=${currentVm.M})` : '';
+          ui.output.textContent = `Scalar: ${re.toFixed(6)} + ${im.toFixed(6)}i${micro}`;
+          return;
+        }
+        ui.output.textContent = `Result (${value.kind}) available on stack.`;
+      }
+
+      function renderAst(ast) {
+        ui.ast.textContent = JSON.stringify(ast, null, 2);
+      }
+
+      function renderValues(rows) {
+        ui.valueTable.innerHTML = '';
+        if (!rows.length) {
+          ui.valueTable.innerHTML = '<tr><td colspan="3">No bindings yet.</td></tr>';
+          return;
+        }
+        for (const row of rows) {
+          const tr = document.createElement('tr');
+          const kindClass = row.kind === 'scalar' ? 'kind-scalar' : row.kind === 'uvalue' ? 'kind-uvalue' : 'kind-ustate';
+          tr.innerHTML = `
+            <td>${row.name}</td>
+            <td><span class="pill ${kindClass}">${row.kind}</span></td>
+            <td><span class="summary-chip">${row.summary}</span></td>
+          `;
+          ui.valueTable.appendChild(tr);
+        }
+      }
+
+      function renderDebug(tokens, instructions, trace) {
+        const tokenLines = tokens.map((t, idx) => `${idx.toString().padStart(3, '0')}: ${t.type}${t.value ? `(${JSON.stringify(t.value)})` : ''}`).join('\n');
+        const instrLines = instructions.map((ins, idx) => {
+          const argsText = ins.args.length ? ` ${ins.args.join(', ')}` : '';
+          return `${idx.toString().padStart(3, '0')}: ${ins.op}${argsText}`;
+        }).join('\n');
+        const traceLines = trace.join('\n');
+        ui.debug.textContent = `TOKENS:\n${tokenLines}\n\nINSTRUCTIONS:\n${instrLines}\n\nTRACE:\n${traceLines}`;
+      }
+
+      function renderReadControls(vm) {
+        const values = vm.listNames('uvalue');
+        const states = vm.listNames('ustate');
+        if (!values.length || !states.length) {
+          ui.readTester.innerHTML = '<span>Declare at least one UValue and UState to enable manual readouts.</span>';
+          ui.readResult.textContent = '';
+          return;
+        }
+        const valueSelect = document.createElement('select');
+        values.forEach((name) => {
+          const opt = document.createElement('option');
+          opt.value = name;
+          opt.textContent = name;
+          valueSelect.appendChild(opt);
+        });
+        const stateSelect = document.createElement('select');
+        states.forEach((name) => {
+          const opt = document.createElement('option');
+          opt.value = name;
+          opt.textContent = name;
+          stateSelect.appendChild(opt);
+        });
+        const btn = document.createElement('button');
+        btn.textContent = 'Read value | state';
+        btn.addEventListener('click', () => {
+          if (!currentVm) return;
+          try {
+            const result = currentVm.readNamed(valueSelect.value, stateSelect.value);
+            ui.readResult.textContent = `read(${valueSelect.value} | ${stateSelect.value}) = ${result.re.toFixed(6)} + ${result.im.toFixed(6)}i`;
+          } catch (err) {
+            ui.readResult.textContent = err.message;
+          }
+        });
+        ui.readTester.innerHTML = '';
+        ui.readTester.appendChild(valueSelect);
+        ui.readTester.appendChild(stateSelect);
+        ui.readTester.appendChild(btn);
+      }
+
+      function formatUValueLines(vm, ref) {
+        const arr = vm.heap.values[ref] ?? [];
+        if (!arr.length) return 'No microstates available.';
+        const limit = Math.min(arr.length, 256);
+        const lines = [];
+        for (let i = 0; i < limit; i++) {
+          const sample = arr[i] ?? { real: 0, imag: 0 };
+          const { re, im } = complexToFloat(sample);
+          const novel = sample?.novelId ? ` novel#${sample.novelId}` : '';
+          lines.push(`${i.toString().padStart(4, '0')}: ${re.toFixed(4)} + ${im.toFixed(4)}i${novel}`);
+        }
+        if (limit < arr.length) lines.push(`... truncated ${arr.length - limit} rows`);
+        return lines.join('\n');
+      }
+
+      function formatUStateLines(vm, ref) {
+        const arr = vm.heap.states[ref] ?? [];
+        if (!arr.length) return 'No amplitudes stored.';
+        const limit = Math.min(arr.length, 256);
+        const lines = [];
+        for (let i = 0; i < limit; i++) {
+          const entry = arr[i] ?? { real: 0, imag: 0 };
+          const weight = decodeReal(magnitudeSquared(entry));
+          lines.push(`${i.toString().padStart(4, '0')}: |psi|^2 = ${weight.toFixed(6)}`);
+        }
+        if (limit < arr.length) lines.push(`... truncated ${arr.length - limit} rows`);
+        return lines.join('\n');
+      }
+
+      function populateInspectorSelect(select, names, placeholder) {
+        if (!select) return;
+        select.innerHTML = '';
+        if (!names.length) {
+          const opt = document.createElement('option');
+          opt.value = '';
+          opt.textContent = placeholder;
+          select.appendChild(opt);
+          select.disabled = true;
+          return;
+        }
+        select.disabled = false;
+        names.forEach((name) => {
+          const opt = document.createElement('option');
+          opt.value = name;
+          opt.textContent = name;
+          select.appendChild(opt);
+        });
+      }
+
+      function renderInspectors(vm) {
+        const insp = ui.inspectors;
+        if (!insp?.panel) return;
+        populateInspectorSelect(insp.uvalueSelect, vm.listNames('uvalue'), 'No UValues');
+        populateInspectorSelect(insp.stateSelect, vm.listNames('ustate'), 'No UStates');
+        if (insp.uvalueOutput) insp.uvalueOutput.textContent = 'Select a UValue to view amplitudes.';
+        if (insp.stateOutput) insp.stateOutput.textContent = 'Select a UState to view |psi|^2 weights.';
+        if (insp.novelOutput) {
+          const entries = vm.heap.novels.entries ?? [];
+          if (!entries.length) {
+            insp.novelOutput.textContent = 'No novel values recorded.';
+          } else {
+            const text = entries.map((entry) => {
+              const args = (entry.args ?? []).map((arg) => JSON.stringify(arg)).join(', ');
+              return `#${entry.id}: ${entry.op}(${args}) @ ${entry.index}`;
+            }).join('\n');
+            insp.novelOutput.textContent = text;
+          }
+        }
+      }
+
+      function resetDiagnostics() {
+        if (ui.diagnostics && ui.diagnostics.print) {
+          ui.diagnostics.print.textContent = 'printU(...) output will appear here.';
+        }
+        if (ui.diagnostics && ui.diagnostics.plot) {
+          const canvas = ui.diagnostics.plot;
+          const ctx = canvas.getContext('2d');
+          if (ctx) {
+            const width = canvas.clientWidth || canvas.width;
+            const height = canvas.clientHeight || canvas.height;
+            if (width && height) {
+              canvas.width = width;
+              canvas.height = height;
+            }
+            ctx.fillStyle = '#05060f';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+          }
+        }
+      }
+
+      function appendDiagnosticPrint(text) {
+        if (!ui.diagnostics || !ui.diagnostics.print || !text) return;
+        const current = ui.diagnostics.print.textContent || '';
+        const placeholder = 'printU(...) output will appear here.';
+        if (!current.trim() || current.trim() === placeholder) {
+          ui.diagnostics.print.textContent = text;
+        } else {
+          ui.diagnostics.print.textContent = `${current}\n\n${text}`;
+        }
+      }
+
+      function renderDiagnosticPlot(values) {
+        const canvas = ui.diagnostics && ui.diagnostics.plot ? ui.diagnostics.plot : null;
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return;
+        const width = canvas.clientWidth || canvas.width;
+        const height = canvas.clientHeight || canvas.height;
+        if (width && height && (canvas.width !== width || canvas.height !== height)) {
+          canvas.width = width;
+          canvas.height = height;
+        }
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = '#05060f';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        if (!values?.length) return;
+        const max = values.reduce((acc, v) => Math.max(acc, Math.abs(v)), 0.0001);
+        const step = Math.max(1, canvas.width / values.length);
+        ctx.strokeStyle = '#7dd7ff';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        values.forEach((value, idx) => {
+          const x = idx * step;
+          const normalized = Math.min(1, Math.abs(value) / max);
+          const y = canvas.height - normalized * (canvas.height - 20) - 10;
+          if (idx === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        });
+        ctx.stroke();
+      }
+
+      function resetInspectors() {
+        const insp = ui.inspectors;
+        if (!insp) return;
+        if (insp.uvalueSelect) {
+          insp.uvalueSelect.innerHTML = '<option value="">No UValues declared</option>';
+          insp.uvalueSelect.disabled = true;
+        }
+        if (insp.stateSelect) {
+          insp.stateSelect.innerHTML = '<option value="">No UStates declared</option>';
+          insp.stateSelect.disabled = true;
+        }
+        if (insp.uvalueOutput) insp.uvalueOutput.textContent = 'Select a UValue to view amplitudes.';
+        if (insp.stateOutput) insp.stateOutput.textContent = 'Select a UState to view |psi|^2 weights.';
+        if (insp.novelOutput) insp.novelOutput.textContent = 'No novel values recorded.';
+      }
+
+      ui.source.value = sampleProgram;
+      updateHighlight();
+      resetInspectors();
+      resetDiagnostics();
+    })();
+  </script>
+</body>
+</html>
