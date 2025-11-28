@@ -225,6 +225,15 @@ UNS does not force an interpretation—classical numbers, quantum-like views, pr
 ## **License**
 
 Parts of this repository are open source; others are closed or proprietary and not redistributable. Each directory contains its own license file—please review before use. For more info, see the repository’s license files for all applicable terms. [Licensing Overview.md](Licensing Overview.md).
+
+---
+
+## **Errors and Contradictions**
+
+There may be errors, contradictions or inconsistencies across the various documents. I've tried to prevent such things, and correct them when found, but if you spot anything questionable, please open a bug report.
+
+The most accurate examples of valid expressions should be found in the Wiki from Section 09 onward.
+
 ---
 
 ## **Contributing**
