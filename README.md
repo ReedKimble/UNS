@@ -4,6 +4,8 @@
 
 ---
 
+<a href="https://reedkimble.github.io/UNS/Examples/Web%20App%20IDE/uns_runtime_app.html">Universal Number Set (UNS) Runtime Playground</a>
+
 ## **What Is UNS?**
 
 The **Universal Number Set (UNS)** is an extended number system built around a simple but transformative idea:
