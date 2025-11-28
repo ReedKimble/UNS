@@ -4,7 +4,7 @@
 
 ---
 
-<a href="https://reedkimble.github.io/UNS/Examples/Web%20App%20IDE/uns_runtime_app.html" target="about:blank">Universal Number Set (UNS) Runtime Playground</a>
+<a href="https://reedkimble.github.io/UNS/Examples/Web%20App%20IDE/uns_runtime_app.html" target="_blank">Universal Number Set (UNS) Runtime Playground</a>
 
 ## **What Is UNS?**
 
