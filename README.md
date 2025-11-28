@@ -222,8 +222,7 @@ UNS does not force an interpretation—classical numbers, quantum-like views, pr
 
 ## **License**
 
-See the repository’s license files for all applicable terms.
-
+Parts of this repository are open source; others are closed or proprietary and not redistributable. Each directory contains its own license file—please review before use. For more info, see the repository’s license files for all applicable terms. [Licensing Overview.md](Licensing Overview.md).
 ---
 
 ## **Contributing**
