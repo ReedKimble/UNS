@@ -1,0 +1,10 @@
+// Compare global vs windowed prime densities
+// Increase microstates to ~12000 for tests up to 10,000
+
+let idx = lift1(index, const(0))
+let primes = lift1(isPrime, idx)
+state psi = psi_uniform()
+let global = meanU(primes, psi)
+let firstBand = mask_range(0, 128)
+let firstBandDensity = meanU(primes *u firstBand, psi)
+read(primes | psi)

@@ -1,0 +1,10 @@
+// Sample UNS program demonstrating const, +u, *s, lifts, windowed states, read
+    let alpha = const(0.75)
+    let beta = const(0.25)
+    let probe = alpha +u (beta *s 2)
+    let signal = lift1(sqrt, probe)
+    let idx = lift1(index, const(0))
+    let windowMask = lift1(windowWeight_3_4, idx)
+    state psi = windowMask
+    let guard = lift2(divide, probe +u const(0.1), signal)
+    read(guard | psi)

@@ -1,0 +1,11 @@
+// Assemble sparse differences and spike a microstate
+let diff = assemble {
+  0: 0.2,
+  1: 0.1,
+  2: -0.2,
+  3: 0.1,
+  4: 0.1
+}
+let spike = inject(0.5, 32)
+let combined = diff +u spike
+plotU(combined)

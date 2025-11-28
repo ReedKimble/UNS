@@ -1,14 +1,9 @@
-// Hypotenuse of a Right-Angle Triangle
+// Calculate the hypotenuse of a right angle triangle
+// Compute sqrt(a^2 + b^2) per microstate
 
-let A = const(3)
-let B = const(4)
-
-let Asq = A *u A
-let Bsq = B *u B
-
-let F = Asq +u Bsq
-
-let psi_point = const(0)
-let psi0 = psi_point
-let H = read( lift1(sqrt, F) | psi0 )
-let H = read( sqrtU(F) | psi0 )
+let idx = lift1(index, const(0))
+let a = lift1(sin, idx)
+let b = lift1(cos, idx)
+let hypSquared = (a *u a) +u (b *u b)
+let hyp = sqrtU(hypSquared)
+plotU(hyp)

@@ -1,0 +1,7 @@
+// Detect how smooth a hybrid window + sine signal is
+let idx = lift1(index, const(0))
+let carrier = lift1(windowWeight_96_48, idx)
+let signal = carrier +u lift1(sin, idx)
+let roughness = smoothness(signal)
+printU(signal)
+plotU(signal)

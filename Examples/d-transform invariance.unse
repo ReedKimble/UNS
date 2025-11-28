@@ -1,0 +1,7 @@
+// Show readout invariance after shifting psi
+let idx = lift1(index, const(0))
+let wave = lift1(sin, idx)
+state psi = psi_uniform()
+state shifted = D(48, psi)
+let baseline = read(wave | psi)
+let shiftedRead = read(wave | shifted)

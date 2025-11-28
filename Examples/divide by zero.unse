@@ -1,0 +1,4 @@
+// Surface a novel value produced by divide-by-zero
+let zeros = collection(const(0))
+let unstable = divU(const(1), zeros)
+printU(unstable)
