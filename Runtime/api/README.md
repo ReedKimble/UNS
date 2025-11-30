@@ -42,7 +42,7 @@ npm start  # listens on http://localhost:7070
 
 - `npm run dev` starts the server with `nodemon` for hot reloads.
 - The service exposes Swagger UI at <http://localhost:7070/docs> and the raw contract at <http://localhost:7070/openapi.json>.
-- Run `npm run build:swagger-ui` to regenerate a static `/Runtime/api/docs` bundle (ships `index.html` + `openapi.json`) for sharing outside the running server.
+- Run `npm run build:swagger-ui` to regenerate a static `/Runtime/api/docs` bundle (ships `index.html` + `openapi.json`) for sharing outside the running server. The directory is gitignored so these assets exist only in the environment where you run the command.
 - Set `SWAGGER_SERVER_URL=https://example.com/api/v1` before `npm start` to override the `servers` array that Swagger UI advertises (handy when fronting the API with a gateway).
 
 ## Request Examples
@@ -73,4 +73,4 @@ Invoke-RestMethod -Method Post -Uri http://localhost:7070/api/v1/runtime/read -C
 
 ## OpenAPI Contract
 
-The complete schema lives at `Runtime/api/openapi/openapi.yaml`. Update this file when routes or payloads change—the Express server automatically reloads it on startup so `/docs` reflects the latest specification. Use `npm run build:swagger-ui` whenever you need a freshly generated static Swagger UI (outputs to `Runtime/api/docs`).
+The complete schema lives at `Runtime/api/openapi/openapi.yaml`. Update this file when routes or payloads change—the Express server automatically reloads it on startup so `/docs` reflects the latest specification. Use `npm run build:swagger-ui` whenever you need a freshly generated static Swagger UI (outputs to `Runtime/api/docs`). In hosted scenarios (e.g., Vercel), run this command during the platform's build step with `SWAGGER_SERVER_URL` pointing at the public gateway so the generated artifacts reflect the deployment environment without ever committing those URLs to git.
