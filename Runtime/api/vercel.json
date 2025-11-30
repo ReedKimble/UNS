@@ -1,8 +1,8 @@
 {
   "version": 2,
   "rewrites": [
-    { "source": "/api/v1/(.*)", "destination": "/Runtime/api/api/index.js" },
-    { "source": "/docs/(.*)", "destination": "/Runtime/api/docs/$1" }
+    { "source": "/api/v1/(.*)", "destination": "/api/index.js" },
+    { "source": "/docs/(.*)", "destination": "/docs/$1" }
   ],
-  "outputDirectory": "Runtime/api/docs"
+  "outputDirectory": "docs"
 }
