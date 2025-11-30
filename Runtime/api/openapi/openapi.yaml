@@ -10,6 +10,8 @@ info:
 servers:
   - url: http://localhost:7070
     description: Local development server (npm start)
+  - url: https://uns-phi.vercel.app/Runtime/api
+    description: Hosted runtime server
 tags:
   - name: Composite
     description: Compile or execute complete UNS programs and browse bundled examples.
