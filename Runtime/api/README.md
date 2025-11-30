@@ -43,6 +43,7 @@ npm start  # listens on http://localhost:7070
 - `npm run dev` starts the server with `nodemon` for hot reloads.
 - The service exposes Swagger UI at <http://localhost:7070/docs> and the raw contract at <http://localhost:7070/openapi.json>.
 - Run `npm run build:swagger-ui` to regenerate a static `/Runtime/api/docs` bundle (ships `index.html` + `openapi.json`) for sharing outside the running server.
+- Set `SWAGGER_SERVER_URL=https://example.com/api/v1` before `npm start` to override the `servers` array that Swagger UI advertises (handy when fronting the API with a gateway).
 
 ## Request Examples
 

@@ -30,7 +30,7 @@ const fsp = fs.promises;
 app.use(cors());
 app.use(express.json({ limit: '512kb' }));
 
-const swaggerDoc = loadOpenApiDocument(openapiPath);
+const swaggerDoc = loadOpenApiDocument(openapiPath, process.env.SWAGGER_SERVER_URL);
 
 if (swaggerDoc) {
   app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerDoc));
@@ -152,10 +152,19 @@ function sendError(res, err, fallback = 500) {
   res.status(status).json({ error: err?.message ?? 'Unexpected error' });
 }
 
-function loadOpenApiDocument(filePath) {
+function loadOpenApiDocument(filePath, overrideServerUrl) {
   try {
     const raw = fs.readFileSync(filePath, 'utf8');
-    return yaml.load(raw);
+    const doc = yaml.load(raw);
+    if (doc && overrideServerUrl) {
+      doc.servers = [
+        {
+          url: overrideServerUrl,
+          description: 'Runtime base URL (overridden via SWAGGER_SERVER_URL)'
+        }
+      ];
+    }
+    return doc;
   } catch (err) {
     if (err.code !== 'ENOENT') {
       console.warn('Failed to load OpenAPI document:', err.message);
