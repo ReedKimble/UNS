@@ -8,7 +8,7 @@
   },
   "servers": [
     {
-      "url": "https://uns-phi.vercel.app/Runtime/api",
+      "url": "https://uns-phi.vercel.app/Runtime",
       "description": "Hosted runtime server"
     },
     {
