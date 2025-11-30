@@ -27,7 +27,17 @@ async function main() {
 async function loadOpenApi() {
   const raw = await fs.promises.readFile(openapiPath, 'utf8');
   if (!raw.trim()) throw new Error('OpenAPI document is empty.');
-  return yaml.load(raw);
+  const doc = yaml.load(raw);
+  const overrideUrl = process.env.SWAGGER_SERVER_URL;
+  if (doc && overrideUrl) {
+    doc.servers = [
+      {
+        url: overrideUrl,
+        description: 'Runtime base URL (overridden via SWAGGER_SERVER_URL)'
+      }
+    ];
+  }
+  return doc;
 }
 
 function validateSpec(spec) {
@@ -50,6 +60,7 @@ function buildHtmlPage() {
 <html lang="en">
   <head>
     <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>UNS Runtime API Docs</title>
     <link rel="stylesheet" href="https://unpkg.com/swagger-ui-dist@5/swagger-ui.css" />
     <style>
