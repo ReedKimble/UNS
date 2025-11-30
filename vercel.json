@@ -1,0 +1,11 @@
+{
+  "version": 2,
+  "builds": [
+    { "src": "Runtime/api/api/index.js", "use": "@vercel/node" },
+    { "src": "Runtime/api/docs/**/*", "use": "@vercel/static" }
+  ],
+  "rewrites": [
+    { "source": "/api/v1/(.*)", "destination": "/Runtime/api/api/index.js" },
+    { "source": "/docs/(.*)", "destination": "/Runtime/api/docs/$1" }
+  ]
+}

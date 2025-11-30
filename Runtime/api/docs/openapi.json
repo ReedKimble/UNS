@@ -8,10 +8,6 @@
   },
   "servers": [
     {
-      "url": "https://uns-phi.vercel.app/Runtime",
-      "description": "Hosted runtime server"
-    },
-    {
       "url": "http://localhost:7070",
       "description": "Local development server (npm start)"
     }
