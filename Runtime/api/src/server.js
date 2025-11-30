@@ -20,7 +20,7 @@ const {
 const pkg = require('../package.json');
 
 const app = express();
-const API_PREFIX = '/Runtime/api/v1';
+const API_PREFIX = '/api/v1';
 const PORT = Number(process.env.PORT) || 7070;
 const repoRoot = path.resolve(__dirname, '..', '..', '..');
 const examplesDir = path.join(repoRoot, 'Examples');
