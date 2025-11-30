@@ -1,0 +1,22 @@
+{
+  "name": "uns-runtime-api",
+  "version": "0.1.0",
+  "description": "REST wrapper for the Universal Number Set runtime",
+  "main": "src/server.js",
+  "license": "SEE LICENSE IN ../../Licensing Overview.md",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js",
+    "lint": "node --check src/server.js",
+    "build:swagger-ui": "node scripts/build-swagger-ui.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.19.2",
+    "js-yaml": "^4.1.0",
+    "swagger-ui-express": "^5.0.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.0"
+  }
+}

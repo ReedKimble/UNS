@@ -1,0 +1,2599 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "UNS Runtime REST API",
+    "version": "0.1.0",
+    "summary": "REST facade for compiling and executing Universal Number Set programs",
+    "description": "Exposes the UNS tokenizer → parser → compiler → virtual machine pipeline over HTTP.\nAll endpoints are stateless and accept raw UNS source code, returning compiler artifacts,\nexecution traces, diagnostics, and serialized runtime values in JSON form.\n"
+  },
+  "servers": [
+    {
+      "url": "http://localhost:7070",
+      "description": "Local development server (npm start)"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Composite",
+      "description": "Compile or execute complete UNS programs and browse bundled examples."
+    },
+    {
+      "name": "Individual",
+      "description": "Evaluate a single UNS keyword or helper and return a serialized UValue/UState preview."
+    }
+  ],
+  "paths": {
+    "/api/v1/health": {
+      "get": {
+        "tags": [
+          "Composite"
+        ],
+        "summary": "Service health probe",
+        "description": "Returns version metadata and default runtime limits.",
+        "responses": {
+          "200": {
+            "description": "Healthy status",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/runtime/compile": {
+      "post": {
+        "tags": [
+          "Composite"
+        ],
+        "summary": "Compile without execution",
+        "description": "Tokenizes, parses, and compiles UNS source, returning AST, bytecode, and inferred bindings.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CompileRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Compilation succeeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CompileResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input or compiler error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/runtime/execute": {
+      "post": {
+        "tags": [
+          "Composite"
+        ],
+        "summary": "Compile and execute UNS source",
+        "description": "Performs the full pipeline, returning the terminal stack value, bindings, diagnostics, and VM trace.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExecuteRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Execution succeeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExecuteResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input or runtime error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/runtime/read": {
+      "post": {
+        "tags": [
+          "Composite"
+        ],
+        "summary": "Execute and return specific read(value | state) pairs",
+        "description": "Convenience wrapper that executes a program and returns only the requested measurements.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReadRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Measurements captured",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReadResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request or runtime error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/examples": {
+      "get": {
+        "tags": [
+          "Composite"
+        ],
+        "summary": "List bundled UNS sample programs",
+        "responses": {
+          "200": {
+            "description": "Sample catalog",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "count": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/ExampleSummary"
+                      }
+                    }
+                  },
+                  "required": [
+                    "count",
+                    "items"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/examples/{id}": {
+      "get": {
+        "tags": [
+          "Composite"
+        ],
+        "summary": "Retrieve the full source for a sample",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Sample identifier (filename without .unse)",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Sample found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExampleDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No sample matches the supplied id",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/individual/keywords/const": {
+      "post": {
+        "tags": [
+          "Individual"
+        ],
+        "summary": "Evaluate the const keyword",
+        "description": "Broadcasts a scalar across the configured microstates to yield a constant UValue.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/KeywordConstRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Const evaluation result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IndividualResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid payload",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/individual/keywords/lift1": {
+      "post": {
+        "tags": [
+          "Individual"
+        ],
+        "summary": "Evaluate the lift1 keyword",
+        "description": "Applies a unary operator (e.g., sqrt, sin) element-wise to a UValue.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/KeywordLift1Request"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Lift1 evaluation result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IndividualResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid payload",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/individual/keywords/lift2": {
+      "post": {
+        "tags": [
+          "Individual"
+        ],
+        "summary": "Evaluate the lift2 keyword",
+        "description": "Applies a binary operator (e.g., divide, pow) across two UValues.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/KeywordLift2Request"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Lift2 evaluation result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IndividualResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid payload",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/individual/keywords/D": {
+      "post": {
+        "tags": [
+          "Individual"
+        ],
+        "summary": "Evaluate the D keyword",
+        "description": "Rotates/resizes a state to a new microstate dimension using the D transform.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/KeywordDRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "D transform result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IndividualResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid payload",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/individual/helpers/uniform_state": {
+      "post": {
+        "tags": [
+          "Individual"
+        ],
+        "summary": "Build a uniform state helper",
+        "description": "Returns a normalized uniform amplitude vector spanning the microstates.",
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HelperUniformStateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Helper evaluation result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IndividualResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid payload",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/individual/helpers/psi_uniform": {
+      "post": {
+        "tags": [
+          "Individual"
+        ],
+        "summary": "Build a psi_uniform helper",
+        "description": "Alias for uniform_state that returns a uniform UState.",
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HelperUniformStateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Helper evaluation result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IndividualResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid payload",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/individual/helpers/delta_state": {
+      "post": {
+        "tags": [
+          "Individual"
+        ],
+        "summary": "Build a delta_state helper",
+        "description": "Creates a delta spike at the requested index.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HelperDeltaStateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Helper evaluation result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IndividualResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid payload",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/individual/helpers/state": {
+      "post": {
+        "tags": [
+          "Individual"
+        ],
+        "summary": "Build a state helper",
+        "description": "Normalizes a supplied UValue into a UState.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HelperStateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Helper evaluation result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IndividualResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid payload",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/individual/helpers/state_from_mask": {
+      "post": {
+        "tags": [
+          "Individual"
+        ],
+        "summary": "Build a state_from_mask helper",
+        "description": "Converts a boolean mask UValue into a normalized UState.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HelperStateFromMaskRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Helper evaluation result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IndividualResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid payload",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/individual/helpers/state_range": {
+      "post": {
+        "tags": [
+          "Individual"
+        ],
+        "summary": "Build a state_range helper",
+        "description": "Produces a normalized state spanning the inclusive index range.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HelperStateRangeRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Helper evaluation result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IndividualResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid payload",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/individual/helpers/mask_range": {
+      "post": {
+        "tags": [
+          "Individual"
+        ],
+        "summary": "Build a mask_range helper",
+        "description": "Creates a UValue mask covering the specified range.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HelperMaskRangeRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Helper evaluation result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IndividualResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid payload",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/individual/helpers/mask_threshold": {
+      "post": {
+        "tags": [
+          "Individual"
+        ],
+        "summary": "Build a mask_threshold helper",
+        "description": "Compares two UValues and sets bits where value ≥ threshold.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HelperMaskThresholdRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Helper evaluation result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IndividualResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid payload",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/individual/helpers/mask_lt": {
+      "post": {
+        "tags": [
+          "Individual"
+        ],
+        "summary": "Build a mask_lt helper",
+        "description": "Produces a UValue mask where left < right.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HelperMaskBinaryRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Helper evaluation result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IndividualResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid payload",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/individual/helpers/mask_gt": {
+      "post": {
+        "tags": [
+          "Individual"
+        ],
+        "summary": "Build a mask_gt helper",
+        "description": "Produces a UValue mask where left > right.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HelperMaskBinaryRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Helper evaluation result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IndividualResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid payload",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/individual/helpers/mask_eq": {
+      "post": {
+        "tags": [
+          "Individual"
+        ],
+        "summary": "Build a mask_eq helper",
+        "description": "Produces a UValue mask where left == right.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HelperMaskBinaryRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Helper evaluation result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IndividualResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid payload",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/individual/helpers/collection": {
+      "post": {
+        "tags": [
+          "Individual"
+        ],
+        "summary": "Build a collection helper",
+        "description": "Samples multiple UValues into a composite UValue collection.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HelperCollectionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Helper evaluation result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IndividualResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid payload",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/individual/helpers/inject": {
+      "post": {
+        "tags": [
+          "Individual"
+        ],
+        "summary": "Build an inject helper",
+        "description": "Injects a scalar or UValue sample at a specific index and optional dimension.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HelperInjectRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Helper evaluation result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IndividualResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid payload",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/individual/helpers/CANCEL": {
+      "post": {
+        "tags": [
+          "Individual"
+        ],
+        "summary": "Run the CANCEL helper",
+        "description": "Performs UNS cancellation on two simplex distributions and returns residuals.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HelperCancelRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Helper evaluation result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IndividualResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid payload",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/individual/helpers/CANCEL_JOINT": {
+      "post": {
+        "tags": [
+          "Individual"
+        ],
+        "summary": "Run the CANCEL_JOINT helper",
+        "description": "Produces the joint cancellation simplex for two distributions.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HelperCancelRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Helper evaluation result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IndividualResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid payload",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/individual/helpers/MIX": {
+      "post": {
+        "tags": [
+          "Individual"
+        ],
+        "summary": "Run the MIX helper",
+        "description": "Convexly combines two UValues with alpha weighting.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HelperMixRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Helper evaluation result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IndividualResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid payload",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/individual/helpers/absU": {
+      "post": {
+        "tags": [
+          "Individual"
+        ],
+        "summary": "Run the absU helper",
+        "description": "Applies absolute value to a UValue element-wise.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HelperUnaryUValueRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Helper evaluation result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IndividualResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid payload",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/individual/helpers/sqrtU": {
+      "post": {
+        "tags": [
+          "Individual"
+        ],
+        "summary": "Run the sqrtU helper",
+        "description": "Applies square root to a UValue element-wise.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HelperUnaryUValueRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Helper evaluation result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IndividualResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid payload",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/individual/helpers/negU": {
+      "post": {
+        "tags": [
+          "Individual"
+        ],
+        "summary": "Run the negU helper",
+        "description": "Negates a UValue element-wise.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HelperUnaryUValueRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Helper evaluation result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IndividualResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid payload",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/individual/helpers/normU": {
+      "post": {
+        "tags": [
+          "Individual"
+        ],
+        "summary": "Run the normU helper",
+        "description": "Emits the magnitude of each complex sample in the UValue.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HelperUnaryUValueRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Helper evaluation result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IndividualResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid payload",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/individual/helpers/addU": {
+      "post": {
+        "tags": [
+          "Individual"
+        ],
+        "summary": "Run the addU helper",
+        "description": "Adds two UValues element-wise.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HelperBinaryUValueRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Helper evaluation result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IndividualResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid payload",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/individual/helpers/subU": {
+      "post": {
+        "tags": [
+          "Individual"
+        ],
+        "summary": "Run the subU helper",
+        "description": "Subtracts the right UValue from the left element-wise.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HelperBinaryUValueRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Helper evaluation result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IndividualResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid payload",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/individual/helpers/mulU": {
+      "post": {
+        "tags": [
+          "Individual"
+        ],
+        "summary": "Run the mulU helper",
+        "description": "Multiplies two UValues element-wise.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HelperBinaryUValueRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Helper evaluation result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IndividualResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid payload",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/individual/helpers/divU": {
+      "post": {
+        "tags": [
+          "Individual"
+        ],
+        "summary": "Run the divU helper",
+        "description": "Divides two UValues element-wise.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HelperBinaryUValueRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Helper evaluation result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IndividualResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid payload",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/individual/helpers/powU": {
+      "post": {
+        "tags": [
+          "Individual"
+        ],
+        "summary": "Run the powU helper",
+        "description": "Raises each element of the base UValue to the power of the exponent UValue.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HelperPowRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Helper evaluation result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IndividualResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid payload",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "BaseIndividualRequest": {
+        "type": "object",
+        "properties": {
+          "microstates": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 32768,
+            "description": "Overrides the VM microstate count before evaluation."
+          }
+        }
+      },
+      "ComplexSample": {
+        "type": "object",
+        "properties": {
+          "real": {
+            "type": "number",
+            "default": 0
+          },
+          "imag": {
+            "type": "number",
+            "default": 0
+          }
+        },
+        "required": [
+          "real"
+        ]
+      },
+      "ScalarInput": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "const": "scalar"
+          },
+          "real": {
+            "type": "number"
+          },
+          "imag": {
+            "type": "number",
+            "default": 0
+          }
+        },
+        "required": [
+          "kind",
+          "real"
+        ]
+      },
+      "UValueInput": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "const": "uvalue"
+          },
+          "samples": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ComplexSample"
+            }
+          },
+          "dimension": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 32768,
+            "description": "Optional microstate length override before padding/truncation."
+          }
+        },
+        "required": [
+          "kind",
+          "samples"
+        ]
+      },
+      "UStateInput": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "const": "ustate"
+          },
+          "amplitudes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ComplexSample"
+            }
+          },
+          "dimension": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 32768,
+            "description": "Optional microstate length override before padding/truncation."
+          }
+        },
+        "required": [
+          "kind",
+          "amplitudes"
+        ]
+      },
+      "ScalarOrUValueInput": {
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/ScalarInput"
+          },
+          {
+            "$ref": "#/components/schemas/UValueInput"
+          }
+        ]
+      },
+      "KeywordConstRequest": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/BaseIndividualRequest"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "value": {
+                "$ref": "#/components/schemas/ScalarInput"
+              }
+            },
+            "required": [
+              "value"
+            ]
+          }
+        ]
+      },
+      "KeywordLift1Request": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/BaseIndividualRequest"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "operator": {
+                "type": "string"
+              },
+              "argument": {
+                "$ref": "#/components/schemas/UValueInput"
+              }
+            },
+            "required": [
+              "operator",
+              "argument"
+            ]
+          }
+        ]
+      },
+      "KeywordLift2Request": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/BaseIndividualRequest"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "operator": {
+                "type": "string"
+              },
+              "left": {
+                "$ref": "#/components/schemas/UValueInput"
+              },
+              "right": {
+                "$ref": "#/components/schemas/UValueInput"
+              }
+            },
+            "required": [
+              "operator",
+              "left",
+              "right"
+            ]
+          }
+        ]
+      },
+      "KeywordDRequest": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/BaseIndividualRequest"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "dimension": {
+                "type": "number",
+                "description": "Optional rotation/resize parameter (integer values recommended)."
+              },
+              "state": {
+                "oneOf": [
+                  {
+                    "$ref": "#/components/schemas/UStateInput"
+                  },
+                  {
+                    "$ref": "#/components/schemas/UValueInput"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "state"
+            ]
+          }
+        ]
+      },
+      "HelperUniformStateRequest": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/BaseIndividualRequest"
+          }
+        ]
+      },
+      "HelperDeltaStateRequest": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/BaseIndividualRequest"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "index": {
+                "$ref": "#/components/schemas/ScalarInput"
+              }
+            },
+            "required": [
+              "index"
+            ]
+          }
+        ]
+      },
+      "HelperStateRequest": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/BaseIndividualRequest"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "value": {
+                "$ref": "#/components/schemas/UValueInput"
+              }
+            },
+            "required": [
+              "value"
+            ]
+          }
+        ]
+      },
+      "HelperStateFromMaskRequest": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/BaseIndividualRequest"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "mask": {
+                "$ref": "#/components/schemas/UValueInput"
+              }
+            },
+            "required": [
+              "mask"
+            ]
+          }
+        ]
+      },
+      "HelperStateRangeRequest": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/BaseIndividualRequest"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "start": {
+                "$ref": "#/components/schemas/ScalarInput"
+              },
+              "end": {
+                "$ref": "#/components/schemas/ScalarInput"
+              }
+            },
+            "required": [
+              "start",
+              "end"
+            ]
+          }
+        ]
+      },
+      "HelperMaskRangeRequest": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/BaseIndividualRequest"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "start": {
+                "$ref": "#/components/schemas/ScalarInput"
+              },
+              "end": {
+                "$ref": "#/components/schemas/ScalarInput"
+              }
+            },
+            "required": [
+              "start",
+              "end"
+            ]
+          }
+        ]
+      },
+      "HelperMaskThresholdRequest": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/BaseIndividualRequest"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "value": {
+                "$ref": "#/components/schemas/UValueInput"
+              },
+              "threshold": {
+                "$ref": "#/components/schemas/UValueInput"
+              }
+            },
+            "required": [
+              "value",
+              "threshold"
+            ]
+          }
+        ]
+      },
+      "HelperMaskBinaryRequest": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/BaseIndividualRequest"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "left": {
+                "$ref": "#/components/schemas/UValueInput"
+              },
+              "right": {
+                "$ref": "#/components/schemas/UValueInput"
+              }
+            },
+            "required": [
+              "left",
+              "right"
+            ]
+          }
+        ]
+      },
+      "HelperCollectionRequest": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/BaseIndividualRequest"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "items": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "$ref": "#/components/schemas/UValueInput"
+                }
+              }
+            },
+            "required": [
+              "items"
+            ]
+          }
+        ]
+      },
+      "HelperInjectRequest": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/BaseIndividualRequest"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "value": {
+                "$ref": "#/components/schemas/ScalarOrUValueInput"
+              },
+              "index": {
+                "$ref": "#/components/schemas/ScalarInput"
+              },
+              "dimension": {
+                "$ref": "#/components/schemas/ScalarInput"
+              }
+            },
+            "required": [
+              "value",
+              "index"
+            ]
+          }
+        ]
+      },
+      "HelperCancelRequest": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/BaseIndividualRequest"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "u": {
+                "$ref": "#/components/schemas/UValueInput"
+              },
+              "v": {
+                "$ref": "#/components/schemas/UValueInput"
+              }
+            },
+            "required": [
+              "u",
+              "v"
+            ]
+          }
+        ]
+      },
+      "HelperMixRequest": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/BaseIndividualRequest"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "u": {
+                "$ref": "#/components/schemas/UValueInput"
+              },
+              "v": {
+                "$ref": "#/components/schemas/UValueInput"
+              },
+              "alpha": {
+                "$ref": "#/components/schemas/ScalarInput"
+              }
+            },
+            "required": [
+              "u",
+              "v",
+              "alpha"
+            ]
+          }
+        ]
+      },
+      "HelperUnaryUValueRequest": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/BaseIndividualRequest"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "value": {
+                "$ref": "#/components/schemas/UValueInput"
+              }
+            },
+            "required": [
+              "value"
+            ]
+          }
+        ]
+      },
+      "HelperBinaryUValueRequest": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/BaseIndividualRequest"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "left": {
+                "$ref": "#/components/schemas/UValueInput"
+              },
+              "right": {
+                "$ref": "#/components/schemas/UValueInput"
+              }
+            },
+            "required": [
+              "left",
+              "right"
+            ]
+          }
+        ]
+      },
+      "HelperPowRequest": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/BaseIndividualRequest"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "base": {
+                "$ref": "#/components/schemas/UValueInput"
+              },
+              "exponent": {
+                "$ref": "#/components/schemas/UValueInput"
+              }
+            },
+            "required": [
+              "base",
+              "exponent"
+            ]
+          }
+        ]
+      },
+      "IndividualResponse": {
+        "type": "object",
+        "properties": {
+          "keyword": {
+            "type": "string"
+          },
+          "helper": {
+            "type": "string"
+          },
+          "microstates": {
+            "type": "integer"
+          },
+          "result": {
+            "$ref": "#/components/schemas/SerializedValue"
+          }
+        },
+        "required": [
+          "microstates",
+          "result"
+        ]
+      },
+      "HealthResponse": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "example": "ok"
+          },
+          "version": {
+            "type": "string"
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "defaults": {
+            "type": "object",
+            "properties": {
+              "microstates": {
+                "type": "integer"
+              },
+              "maxMicrostates": {
+                "type": "integer"
+              }
+            },
+            "required": [
+              "microstates",
+              "maxMicrostates"
+            ]
+          }
+        },
+        "required": [
+          "status",
+          "version",
+          "timestamp",
+          "defaults"
+        ]
+      },
+      "CompileRequest": {
+        "type": "object",
+        "properties": {
+          "source": {
+            "type": "string",
+            "description": "Raw UNS source code."
+          }
+        },
+        "required": [
+          "source"
+        ]
+      },
+      "ExecuteRequest": {
+        "type": "object",
+        "properties": {
+          "source": {
+            "type": "string"
+          },
+          "microstates": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 32768,
+            "description": "Overrides the number of microstates allocated for execution. Values outside bounds are clamped server-side."
+          },
+          "reads": {
+            "$ref": "#/components/schemas/ReadEntries"
+          }
+        },
+        "required": [
+          "source"
+        ]
+      },
+      "ReadRequest": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ExecuteRequest"
+          },
+          {
+            "type": "object",
+            "required": [
+              "reads"
+            ]
+          }
+        ]
+      },
+      "ReadEntries": {
+        "type": "array",
+        "minItems": 1,
+        "items": {
+          "$ref": "#/components/schemas/ReadEntry"
+        }
+      },
+      "ReadEntry": {
+        "type": "object",
+        "properties": {
+          "value": {
+            "type": "string",
+            "description": "Name of a UValue binding declared in the program."
+          },
+          "state": {
+            "type": "string",
+            "description": "Name of a UState binding declared in the program."
+          }
+        },
+        "required": [
+          "value",
+          "state"
+        ]
+      },
+      "Token": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string"
+          },
+          "value": {
+            "description": "Literal payload (numbers expose re/im components)",
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "re": {
+                    "type": "number"
+                  },
+                  "im": {
+                    "type": "number"
+                  }
+                }
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "line": {
+            "type": "integer"
+          },
+          "column": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "type",
+          "line",
+          "column"
+        ]
+      },
+      "Instruction": {
+        "type": "object",
+        "properties": {
+          "op": {
+            "type": "string",
+            "description": "VM opcode mnemonic"
+          },
+          "args": {
+            "type": "array",
+            "items": {
+              "oneOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "array"
+                },
+                {
+                  "type": "object"
+                }
+              ]
+            }
+          }
+        },
+        "required": [
+          "op",
+          "args"
+        ]
+      },
+      "EnvType": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "description": "One of scalar, uvalue, ustate, or tuple representation."
+          }
+        },
+        "required": [
+          "name",
+          "type"
+        ]
+      },
+      "BindingSummary": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "scalar",
+              "uvalue",
+              "ustate",
+              "tuple"
+            ]
+          },
+          "summary": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "kind",
+          "summary"
+        ]
+      },
+      "Diagnostics": {
+        "type": "object",
+        "properties": {
+          "print": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "plots": {
+            "type": "array",
+            "items": {
+              "type": "array",
+              "items": {
+                "type": "number"
+              }
+            }
+          }
+        },
+        "required": [
+          "print",
+          "plots"
+        ]
+      },
+      "SerializedScalar": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "const": "scalar"
+          },
+          "summary": {
+            "type": "string"
+          },
+          "real": {
+            "type": "number"
+          },
+          "imag": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "kind",
+          "summary",
+          "real",
+          "imag"
+        ]
+      },
+      "SerializedUValue": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "const": "uvalue"
+          },
+          "summary": {
+            "type": "string"
+          },
+          "preview": {
+            "type": "object",
+            "properties": {
+              "samples": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "index": {
+                      "type": "integer"
+                    },
+                    "real": {
+                      "type": "number"
+                    },
+                    "imag": {
+                      "type": "number"
+                    },
+                    "novelId": {
+                      "type": "integer",
+                      "nullable": true
+                    }
+                  },
+                  "required": [
+                    "index",
+                    "real",
+                    "imag"
+                  ]
+                }
+              },
+              "truncated": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "samples",
+              "truncated"
+            ]
+          }
+        },
+        "required": [
+          "kind",
+          "summary",
+          "preview"
+        ]
+      },
+      "SerializedUState": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "const": "ustate"
+          },
+          "summary": {
+            "type": "string"
+          },
+          "preview": {
+            "type": "object",
+            "properties": {
+              "amplitudes": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "index": {
+                      "type": "integer"
+                    },
+                    "real": {
+                      "type": "number"
+                    },
+                    "imag": {
+                      "type": "number"
+                    },
+                    "weight": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "index",
+                    "real",
+                    "imag",
+                    "weight"
+                  ]
+                }
+              },
+              "truncated": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "amplitudes",
+              "truncated"
+            ]
+          }
+        },
+        "required": [
+          "kind",
+          "summary",
+          "preview"
+        ]
+      },
+      "SerializedTuple": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "const": "tuple"
+          },
+          "summary": {
+            "type": "string"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SerializedValue"
+            }
+          }
+        },
+        "required": [
+          "kind",
+          "summary",
+          "items"
+        ]
+      },
+      "SerializedValue": {
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/SerializedScalar"
+          },
+          {
+            "$ref": "#/components/schemas/SerializedUValue"
+          },
+          {
+            "$ref": "#/components/schemas/SerializedUState"
+          },
+          {
+            "$ref": "#/components/schemas/SerializedTuple"
+          }
+        ]
+      },
+      "CompileResponse": {
+        "type": "object",
+        "properties": {
+          "sourceLength": {
+            "type": "integer"
+          },
+          "tokens": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Token"
+            }
+          },
+          "ast": {
+            "type": "object",
+            "description": "UNS abstract syntax tree (shape mirrors compiler pipeline output)."
+          },
+          "instructions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Instruction"
+            }
+          },
+          "finalType": {
+            "type": "string"
+          },
+          "envTypes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EnvType"
+            }
+          },
+          "envOrder": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "microstatesDefault": {
+            "type": "integer",
+            "description": "Current server default for VM microstate count."
+          }
+        },
+        "required": [
+          "sourceLength",
+          "tokens",
+          "instructions",
+          "finalType",
+          "envTypes",
+          "envOrder",
+          "microstatesDefault"
+        ]
+      },
+      "ExecuteResponse": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/CompileResponse"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "microstates": {
+                "type": "integer"
+              },
+              "result": {
+                "$ref": "#/components/schemas/SerializedValue"
+              },
+              "bindings": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/BindingSummary"
+                }
+              },
+              "trace": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "diagnostics": {
+                "$ref": "#/components/schemas/Diagnostics"
+              },
+              "reads": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "type": "string"
+                    },
+                    "state": {
+                      "type": "string"
+                    },
+                    "real": {
+                      "type": "number"
+                    },
+                    "imag": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "value",
+                    "state",
+                    "real",
+                    "imag"
+                  ]
+                }
+              }
+            },
+            "required": [
+              "microstates",
+              "result",
+              "bindings",
+              "trace",
+              "diagnostics",
+              "reads"
+            ]
+          }
+        ]
+      },
+      "ReadResponse": {
+        "type": "object",
+        "properties": {
+          "microstates": {
+            "type": "integer"
+          },
+          "bindings": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BindingSummary"
+            }
+          },
+          "reads": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "value": {
+                  "type": "string"
+                },
+                "state": {
+                  "type": "string"
+                },
+                "real": {
+                  "type": "number"
+                },
+                "imag": {
+                  "type": "number"
+                }
+              },
+              "required": [
+                "value",
+                "state",
+                "real",
+                "imag"
+              ]
+            }
+          }
+        },
+        "required": [
+          "microstates",
+          "bindings",
+          "reads"
+        ]
+      },
+      "ExampleSummary": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "filename": {
+            "type": "string"
+          },
+          "size": {
+            "type": "integer",
+            "format": "int64"
+          }
+        },
+        "required": [
+          "id",
+          "filename",
+          "size"
+        ]
+      },
+      "ExampleDetail": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ExampleSummary"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "source": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "source"
+            ]
+          }
+        ]
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "error"
+        ]
+      }
+    }
+  }
+}
