@@ -1,0 +1,1205 @@
+openapi: 3.1.0
+info:
+  title: UNS Runtime REST API (GPT Subset)
+  version: 0.1.0
+  description: Minimal subset of UNS runtime endpoints surfaced to GPT callers.
+servers:
+  - url: https://uns-phi.vercel.app
+    description: Production Vercel deployment
+tags:
+  - name: Composite
+    description: Whole-program compilation, execution, and examples.
+  - name: Individual
+    description: Direct keyword or helper invocations on the VM.
+paths:
+  /api/v1/health:
+    get:
+      operationId: healthCheck
+      tags: [Composite]
+      summary: Check health
+      description: Ping the service to confirm it is online and read default microstate limits.
+      responses:
+        '200':
+          description: Service status payload
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+  /api/v1/runtime/compile:
+    post:
+      operationId: compileSource
+      tags: [Composite]
+      summary: Compile UNS source
+      description: Tokenize, parse, and compile UNS code without running it; use to inspect AST/opcodes before execution.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CompileRequest'
+      responses:
+        '200':
+          description: Compilation result bundle
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CompileResponse'
+        '400':
+          description: Invalid source or compiler error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/runtime/execute:
+    post:
+      operationId: executeProgram
+      tags: [Composite]
+      summary: Compile and execute
+      description: Run UNS code end-to-end, returning the final value, bindings, diagnostics, and VM trace.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExecuteRequest'
+      responses:
+        '200':
+          description: Execution payload with result and trace
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExecuteResponse'
+        '400':
+          description: Invalid input or runtime failure
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/runtime/read:
+    post:
+      operationId: readMeasurements
+      tags: [Composite]
+      summary: Execute and read bindings
+      description: Run UNS code but only return specified read(value|state) measurements plus binding summaries.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReadRequest'
+      responses:
+        '200':
+          description: Requested measurement set
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReadResponse'
+        '400':
+          description: Invalid request or execution failure
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/examples:
+    get:
+      operationId: listExamples
+      tags: [Composite]
+      summary: List examples
+      description: Fetch metadata for bundled `.unse` samples to suggest or inspect.
+      responses:
+        '200':
+          description: Example listing
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  count:
+                    type: integer
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ExampleSummary'
+                required: [count, items]
+  /api/v1/examples/{id}:
+    get:
+      operationId: getExample
+      tags: [Composite]
+      summary: Fetch example
+      description: Retrieve the full source for a bundled sample by id.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Sample identifier (filename without `.unse`).
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Example payload
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExampleDetail'
+        '404':
+          description: Example not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/individual/keywords/const:
+    post:
+      operationId: invokeConstKeyword
+      tags: [Individual]
+      summary: const keyword
+      description: Broadcast a scalar across microstates to produce a constant UValue.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/KeywordConstRequest'
+      responses:
+        '200':
+          description: Serialized const UValue
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IndividualResponse'
+        '400':
+          description: Invalid payload
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/individual/keywords/lift1:
+    post:
+      operationId: invokeLift1Keyword
+      tags: [Individual]
+      summary: lift1 keyword
+      description: Apply a named unary operator to one UValue without writing UNS code.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/KeywordLift1Request'
+      responses:
+        '200':
+          description: Serialized lift1 result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IndividualResponse'
+        '400':
+          description: Invalid payload
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/individual/keywords/lift2:
+    post:
+      operationId: invokeLift2Keyword
+      tags: [Individual]
+      summary: lift2 keyword
+      description: Apply a named binary operator to two UValues for quick experimentation.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/KeywordLift2Request'
+      responses:
+        '200':
+          description: Serialized lift2 result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IndividualResponse'
+        '400':
+          description: Invalid payload
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/individual/keywords/D:
+    post:
+      operationId: invokeDKeyword
+      tags: [Individual]
+      summary: D keyword
+      description: Resize or rotate a supplied state/value using the D transform to target microstate counts.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/KeywordDRequest'
+      responses:
+        '200':
+          description: Serialized D result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IndividualResponse'
+        '400':
+          description: Invalid payload
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/individual/helpers/uniform_state:
+    post:
+      operationId: helperUniformState
+      tags: [Individual]
+      summary: uniform_state helper
+      description: Emit a normalized uniform state/value to seed other operations.
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/HelperUniformStateRequest'
+      responses:
+        '200':
+          description: Serialized uniform payload
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IndividualResponse'
+        '400':
+          description: Invalid payload
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/individual/helpers/psi_uniform:
+    post:
+      operationId: helperPsiUniform
+      tags: [Individual]
+      summary: psi_uniform helper
+      description: Produce the canonical uniform UState, mirroring the web IDE helper.
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/HelperUniformStateRequest'
+      responses:
+        '200':
+          description: Serialized psi_uniform state
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IndividualResponse'
+        '400':
+          description: Invalid payload
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/individual/helpers/delta_state:
+    post:
+      operationId: helperDeltaState
+      tags: [Individual]
+      summary: delta_state helper
+      description: Create a normalized spike at the requested index.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/HelperDeltaStateRequest'
+      responses:
+        '200':
+          description: Serialized delta state
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IndividualResponse'
+        '400':
+          description: Invalid payload
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/individual/helpers/state:
+    post:
+      operationId: helperState
+      tags: [Individual]
+      summary: state helper
+      description: Normalize a provided UValue payload into a UState.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/HelperStateRequest'
+      responses:
+        '200':
+          description: Serialized normalized state
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IndividualResponse'
+        '400':
+          description: Invalid payload
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/individual/helpers/state_from_mask:
+    post:
+      operationId: helperStateFromMask
+      tags: [Individual]
+      summary: state_from_mask helper
+      description: Turn a boolean mask value into a normalized state over the true indices.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/HelperStateFromMaskRequest'
+      responses:
+        '200':
+          description: Serialized masked state
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IndividualResponse'
+        '400':
+          description: Invalid payload
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/individual/helpers/state_range:
+    post:
+      operationId: helperStateRange
+      tags: [Individual]
+      summary: state_range helper
+      description: Emit a normalized state covering the inclusive index range.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/HelperStateRangeRequest'
+      responses:
+        '200':
+          description: Serialized range state
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IndividualResponse'
+        '400':
+          description: Invalid payload
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/individual/helpers/mask_range:
+    post:
+      operationId: helperMaskRange
+      tags: [Individual]
+      summary: mask_range helper
+      description: Build a boolean mask that is true between the provided start and end indices.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/HelperMaskRangeRequest'
+      responses:
+        '200':
+          description: Serialized mask
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IndividualResponse'
+        '400':
+          description: Invalid payload
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/individual/helpers/mask_threshold:
+    post:
+      operationId: helperMaskThreshold
+      tags: [Individual]
+      summary: mask_threshold helper
+      description: Compare a value against a threshold to produce a boolean mask.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/HelperMaskThresholdRequest'
+      responses:
+        '200':
+          description: Serialized threshold mask
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IndividualResponse'
+        '400':
+          description: Invalid payload
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/individual/helpers/mask_lt:
+    post:
+      operationId: helperMaskLessThan
+      tags: [Individual]
+      summary: mask_lt helper
+      description: Produce a mask that is true where left < right samples.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/HelperMaskBinaryRequest'
+      responses:
+        '200':
+          description: Serialized lt mask
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IndividualResponse'
+        '400':
+          description: Invalid payload
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/individual/helpers/mask_gt:
+    post:
+      operationId: helperMaskGreaterThan
+      tags: [Individual]
+      summary: mask_gt helper
+      description: Produce a mask that is true where left > right samples.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/HelperMaskBinaryRequest'
+      responses:
+        '200':
+          description: Serialized gt mask
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IndividualResponse'
+        '400':
+          description: Invalid payload
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/individual/helpers/mask_eq:
+    post:
+      operationId: helperMaskEqual
+      tags: [Individual]
+      summary: mask_eq helper
+      description: Produce a mask that is true where left == right samples.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/HelperMaskBinaryRequest'
+      responses:
+        '200':
+          description: Serialized eq mask
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IndividualResponse'
+        '400':
+          description: Invalid payload
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/individual/helpers/collection:
+    post:
+      operationId: helperCollection
+      tags: [Individual]
+      summary: collection helper
+      description: Group multiple UValues into a single collection UValue.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/HelperCollectionRequest'
+      responses:
+        '200':
+          description: Serialized collection result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IndividualResponse'
+        '400':
+          description: Invalid payload
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/individual/helpers/inject:
+    post:
+      operationId: helperInject
+      tags: [Individual]
+      summary: inject helper
+      description: Insert a scalar or UValue sample at a specific index (and optional dimension).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/HelperInjectRequest'
+      responses:
+        '200':
+          description: Serialized inject result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IndividualResponse'
+        '400':
+          description: Invalid payload
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/individual/helpers/CANCEL:
+    post:
+      operationId: helperCancel
+      tags: [Individual]
+      summary: CANCEL helper
+      description: Apply UNS cancellation rules to two distributions and return the residual value.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/HelperCancelRequest'
+      responses:
+        '200':
+          description: Serialized CANCEL result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IndividualResponse'
+        '400':
+          description: Invalid payload
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/individual/helpers/CANCEL_JOINT:
+    post:
+      operationId: helperCancelJoint
+      tags: [Individual]
+      summary: CANCEL_JOINT helper
+      description: Compute joint cancellation across two distributions, returning the simplex summary.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/HelperCancelRequest'
+      responses:
+        '200':
+          description: Serialized joint cancel result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IndividualResponse'
+        '400':
+          description: Invalid payload
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/individual/helpers/MIX:
+    post:
+      operationId: helperMix
+      tags: [Individual]
+      summary: MIX helper
+      description: Blend two UValues with an alpha weight for quick interpolation experiments.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/HelperMixRequest'
+      responses:
+        '200':
+          description: Serialized MIX result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IndividualResponse'
+        '400':
+          description: Invalid payload
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+components:
+  schemas:
+    MicrostatesParam:
+      type: integer
+      minimum: 1
+      maximum: 32768
+      description: Optional override for VM microstate count.
+    ComplexSample:
+      type: object
+      properties:
+        real:
+          type: number
+        imag:
+          type: number
+          default: 0
+      required: [real]
+    ScalarInput:
+      type: object
+      properties:
+        kind:
+          const: scalar
+        real:
+          type: number
+        imag:
+          type: number
+          default: 0
+      required: [kind, real]
+    UValueInput:
+      type: object
+      properties:
+        kind:
+          const: uvalue
+        samples:
+          type: array
+          items:
+            $ref: '#/components/schemas/ComplexSample'
+        dimension:
+          type: integer
+          minimum: 1
+          maximum: 32768
+      required: [kind, samples]
+    UStateInput:
+      type: object
+      properties:
+        kind:
+          const: ustate
+        amplitudes:
+          type: array
+          items:
+            $ref: '#/components/schemas/ComplexSample'
+        dimension:
+          type: integer
+          minimum: 1
+          maximum: 32768
+      required: [kind, amplitudes]
+    ScalarOrUValueInput:
+      oneOf:
+        - $ref: '#/components/schemas/ScalarInput'
+        - $ref: '#/components/schemas/UValueInput'
+    KeywordConstRequest:
+      type: object
+      properties:
+        microstates:
+          $ref: '#/components/schemas/MicrostatesParam'
+        value:
+          $ref: '#/components/schemas/ScalarInput'
+      required: [value]
+    KeywordLift1Request:
+      type: object
+      properties:
+        microstates:
+          $ref: '#/components/schemas/MicrostatesParam'
+        operator:
+          type: string
+        argument:
+          $ref: '#/components/schemas/UValueInput'
+      required: [operator, argument]
+    KeywordLift2Request:
+      type: object
+      properties:
+        microstates:
+          $ref: '#/components/schemas/MicrostatesParam'
+        operator:
+          type: string
+        left:
+          $ref: '#/components/schemas/UValueInput'
+        right:
+          $ref: '#/components/schemas/UValueInput'
+      required: [operator, left, right]
+    KeywordDRequest:
+      type: object
+      properties:
+        microstates:
+          $ref: '#/components/schemas/MicrostatesParam'
+        dimension:
+          type: number
+        state:
+          oneOf:
+            - $ref: '#/components/schemas/UStateInput'
+            - $ref: '#/components/schemas/UValueInput'
+      required: [state]
+    HelperUniformStateRequest:
+      type: object
+      properties:
+        microstates:
+          $ref: '#/components/schemas/MicrostatesParam'
+    HelperDeltaStateRequest:
+      type: object
+      properties:
+        microstates:
+          $ref: '#/components/schemas/MicrostatesParam'
+        index:
+          $ref: '#/components/schemas/ScalarInput'
+      required: [index]
+    HelperStateRequest:
+      type: object
+      properties:
+        microstates:
+          $ref: '#/components/schemas/MicrostatesParam'
+        value:
+          $ref: '#/components/schemas/UValueInput'
+      required: [value]
+    HelperStateFromMaskRequest:
+      type: object
+      properties:
+        microstates:
+          $ref: '#/components/schemas/MicrostatesParam'
+        mask:
+          $ref: '#/components/schemas/UValueInput'
+      required: [mask]
+    HelperStateRangeRequest:
+      type: object
+      properties:
+        microstates:
+          $ref: '#/components/schemas/MicrostatesParam'
+        start:
+          $ref: '#/components/schemas/ScalarInput'
+        end:
+          $ref: '#/components/schemas/ScalarInput'
+      required: [start, end]
+    HelperMaskRangeRequest:
+      type: object
+      properties:
+        microstates:
+          $ref: '#/components/schemas/MicrostatesParam'
+        start:
+          $ref: '#/components/schemas/ScalarInput'
+        end:
+          $ref: '#/components/schemas/ScalarInput'
+      required: [start, end]
+    HelperMaskThresholdRequest:
+      type: object
+      properties:
+        microstates:
+          $ref: '#/components/schemas/MicrostatesParam'
+        value:
+          $ref: '#/components/schemas/UValueInput'
+        threshold:
+          $ref: '#/components/schemas/UValueInput'
+      required: [value, threshold]
+    HelperMaskBinaryRequest:
+      type: object
+      properties:
+        microstates:
+          $ref: '#/components/schemas/MicrostatesParam'
+        left:
+          $ref: '#/components/schemas/UValueInput'
+        right:
+          $ref: '#/components/schemas/UValueInput'
+      required: [left, right]
+    HelperCollectionRequest:
+      type: object
+      properties:
+        microstates:
+          $ref: '#/components/schemas/MicrostatesParam'
+        items:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/UValueInput'
+      required: [items]
+    HelperInjectRequest:
+      type: object
+      properties:
+        microstates:
+          $ref: '#/components/schemas/MicrostatesParam'
+        value:
+          $ref: '#/components/schemas/ScalarOrUValueInput'
+        index:
+          $ref: '#/components/schemas/ScalarInput'
+        dimension:
+          $ref: '#/components/schemas/ScalarInput'
+      required: [value, index]
+    HelperCancelRequest:
+      type: object
+      properties:
+        microstates:
+          $ref: '#/components/schemas/MicrostatesParam'
+        u:
+          $ref: '#/components/schemas/UValueInput'
+        v:
+          $ref: '#/components/schemas/UValueInput'
+      required: [u, v]
+    HelperMixRequest:
+      type: object
+      properties:
+        microstates:
+          $ref: '#/components/schemas/MicrostatesParam'
+        u:
+          $ref: '#/components/schemas/UValueInput'
+        v:
+          $ref: '#/components/schemas/UValueInput'
+        alpha:
+          $ref: '#/components/schemas/ScalarInput'
+      required: [u, v, alpha]
+    IndividualResponse:
+      type: object
+      properties:
+        keyword:
+          type: string
+        helper:
+          type: string
+        microstates:
+          type: integer
+        result:
+          $ref: '#/components/schemas/SerializedValue'
+      required: [microstates, result]
+    HealthResponse:
+      type: object
+      properties:
+        status:
+          type: string
+        version:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+        defaults:
+          type: object
+          properties:
+            microstates:
+              type: integer
+            maxMicrostates:
+              type: integer
+          required: [microstates, maxMicrostates]
+      required: [status, version, timestamp, defaults]
+    CompileRequest:
+      type: object
+      properties:
+        source:
+          type: string
+      required: [source]
+    ExecuteRequest:
+      type: object
+      properties:
+        source:
+          type: string
+        microstates:
+          type: integer
+          minimum: 1
+          maximum: 32768
+        reads:
+          $ref: '#/components/schemas/ReadEntries'
+      required: [source]
+    ReadRequest:
+      type: object
+      properties:
+        source:
+          type: string
+        microstates:
+          $ref: '#/components/schemas/MicrostatesParam'
+        reads:
+          $ref: '#/components/schemas/ReadEntries'
+      required: [source, reads]
+    ReadEntries:
+      type: array
+      minItems: 1
+      items:
+        $ref: '#/components/schemas/ReadEntry'
+    ReadEntry:
+      type: object
+      properties:
+        value:
+          type: string
+        state:
+          type: string
+      required: [value, state]
+    Token:
+      type: object
+      properties:
+        type:
+          type: string
+        value:
+          oneOf:
+            - type: string
+            - type: number
+            - type: object
+              properties:
+                re:
+                  type: number
+                im:
+                  type: number
+            - type: 'null'
+        line:
+          type: integer
+        column:
+          type: integer
+      required: [type, line, column]
+    Instruction:
+      type: object
+      properties:
+        op:
+          type: string
+        args:
+          type: array
+          items:
+            oneOf:
+              - type: string
+              - type: number
+              - type: integer
+              - type: array
+                items:
+                  oneOf:
+                    - type: string
+                    - type: number
+                    - type: integer
+                    - type: object
+              - type: object
+      required: [op, args]
+    EnvType:
+      type: object
+      properties:
+        name:
+          type: string
+        type:
+          type: string
+      required: [name, type]
+    BindingSummary:
+      type: object
+      properties:
+        name:
+          type: string
+        kind:
+          type: string
+        summary:
+          type: string
+      required: [name, kind, summary]
+    Diagnostics:
+      type: object
+      properties:
+        print:
+          type: array
+          items:
+            type: string
+        plots:
+          type: array
+          items:
+            type: array
+            items:
+              type: number
+      required: [print, plots]
+    SerializedScalar:
+      type: object
+      properties:
+        kind:
+          const: scalar
+        summary:
+          type: string
+        real:
+          type: number
+        imag:
+          type: number
+      required: [kind, summary, real, imag]
+    SerializedUValue:
+      type: object
+      properties:
+        kind:
+          const: uvalue
+        summary:
+          type: string
+        preview:
+          type: object
+          properties:
+            samples:
+              type: array
+              items:
+                type: object
+                properties:
+                  index:
+                    type: integer
+                  real:
+                    type: number
+                  imag:
+                    type: number
+                  novelId:
+                    type:
+                      - integer
+                      - 'null'
+                required: [index, real, imag]
+            truncated:
+              type: boolean
+          required: [samples, truncated]
+      required: [kind, summary, preview]
+    SerializedUState:
+      type: object
+      properties:
+        kind:
+          const: ustate
+        summary:
+          type: string
+        preview:
+          type: object
+          properties:
+            amplitudes:
+              type: array
+              items:
+                type: object
+                properties:
+                  index:
+                    type: integer
+                  real:
+                    type: number
+                  imag:
+                    type: number
+                  weight:
+                    type: number
+                required: [index, real, imag, weight]
+            truncated:
+              type: boolean
+          required: [amplitudes, truncated]
+      required: [kind, summary, preview]
+    SerializedValue:
+      oneOf:
+        - $ref: '#/components/schemas/SerializedScalar'
+        - $ref: '#/components/schemas/SerializedUValue'
+        - $ref: '#/components/schemas/SerializedUState'
+    CompileResponse:
+      type: object
+      properties:
+        sourceLength:
+          type: integer
+        tokens:
+          type: array
+          items:
+            $ref: '#/components/schemas/Token'
+        ast:
+          type: object
+        instructions:
+          type: array
+          items:
+            $ref: '#/components/schemas/Instruction'
+        finalType:
+          type: string
+        envTypes:
+          type: array
+          items:
+            $ref: '#/components/schemas/EnvType'
+        envOrder:
+          type: array
+          items:
+            type: string
+        microstatesDefault:
+          type: integer
+      required:
+        - sourceLength
+        - tokens
+        - instructions
+        - finalType
+        - envTypes
+        - envOrder
+        - microstatesDefault
+    ExecuteResponse:
+      allOf:
+        - $ref: '#/components/schemas/CompileResponse'
+        - type: object
+          properties:
+            microstates:
+              type: integer
+            result:
+              $ref: '#/components/schemas/SerializedValue'
+            bindings:
+              type: array
+              items:
+                $ref: '#/components/schemas/BindingSummary'
+            trace:
+              type: array
+              items:
+                type: string
+            diagnostics:
+              $ref: '#/components/schemas/Diagnostics'
+            reads:
+              type: array
+              items:
+                type: object
+                properties:
+                  value:
+                    type: string
+                  state:
+                    type: string
+                  real:
+                    type: number
+                  imag:
+                    type: number
+                required: [value, state, real, imag]
+          required: [microstates, result, bindings, trace, diagnostics, reads]
+    ReadResponse:
+      type: object
+      properties:
+        microstates:
+          type: integer
+        bindings:
+          type: array
+          items:
+            $ref: '#/components/schemas/BindingSummary'
+        reads:
+          type: array
+          items:
+            type: object
+            properties:
+              value:
+                type: string
+              state:
+                type: string
+              real:
+                type: number
+              imag:
+                type: number
+            required: [value, state, real, imag]
+      required: [microstates, bindings, reads]
+    ExampleSummary:
+      type: object
+      properties:
+        id:
+          type: string
+        filename:
+          type: string
+        size:
+          type: integer
+          format: int64
+      required: [id, filename, size]
+    ExampleDetail:
+      allOf:
+        - $ref: '#/components/schemas/ExampleSummary'
+        - type: object
+          properties:
+            source:
+              type: string
+          required: [source]
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+      required: [error]
+
+
