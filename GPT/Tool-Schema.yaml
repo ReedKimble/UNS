@@ -247,6 +247,506 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/individual/helpers/uniform_state:
+    post:
+      operationId: helperUniformState
+      tags: [Individual]
+      summary: uniform_state helper
+      description: Emit a normalized uniform state/value to seed other operations.
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/HelperUniformStateRequest'
+      responses:
+        '200':
+          description: Serialized uniform payload
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IndividualResponse'
+        '400':
+          description: Invalid payload
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/individual/helpers/delta_state:
+    post:
+      operationId: helperDeltaState
+      tags: [Individual]
+      summary: delta_state helper
+      description: Create a normalized spike at the requested index.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/HelperDeltaStateRequest'
+      responses:
+        '200':
+          description: Serialized delta state
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IndividualResponse'
+        '400':
+          description: Invalid payload
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/individual/helpers/state:
+    post:
+      operationId: helperState
+      tags: [Individual]
+      summary: state helper
+      description: Normalize a provided UValue payload into a UState.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/HelperStateRequest'
+      responses:
+        '200':
+          description: Serialized normalized state
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IndividualResponse'
+        '400':
+          description: Invalid payload
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/individual/helpers/state_from_mask:
+    post:
+      operationId: helperStateFromMask
+      tags: [Individual]
+      summary: state_from_mask helper
+      description: Turn a boolean mask value into a normalized state over the true indices.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/HelperStateFromMaskRequest'
+      responses:
+        '200':
+          description: Serialized masked state
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IndividualResponse'
+        '400':
+          description: Invalid payload
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/individual/helpers/state_range:
+    post:
+      operationId: helperStateRange
+      tags: [Individual]
+      summary: state_range helper
+      description: Emit a normalized state covering the inclusive index range.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/HelperStateRangeRequest'
+      responses:
+        '200':
+          description: Serialized range state
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IndividualResponse'
+        '400':
+          description: Invalid payload
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/individual/helpers/mask_range:
+    post:
+      operationId: helperMaskRange
+      tags: [Individual]
+      summary: mask_range helper
+      description: Build a boolean mask that is true between the provided start and end indices.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/HelperMaskRangeRequest'
+      responses:
+        '200':
+          description: Serialized mask
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IndividualResponse'
+        '400':
+          description: Invalid payload
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/individual/helpers/mask_threshold:
+    post:
+      operationId: helperMaskThreshold
+      tags: [Individual]
+      summary: mask_threshold helper
+      description: Compare a value against a threshold to produce a boolean mask.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/HelperMaskThresholdRequest'
+      responses:
+        '200':
+          description: Serialized threshold mask
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IndividualResponse'
+        '400':
+          description: Invalid payload
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/individual/helpers/mask_lt:
+    post:
+      operationId: helperMaskLessThan
+      tags: [Individual]
+      summary: mask_lt helper
+      description: Produce a mask that is true where left < right samples.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/HelperMaskBinaryRequest'
+      responses:
+        '200':
+          description: Serialized lt mask
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IndividualResponse'
+        '400':
+          description: Invalid payload
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/individual/helpers/mask_gt:
+    post:
+      operationId: helperMaskGreaterThan
+      tags: [Individual]
+      summary: mask_gt helper
+      description: Produce a mask that is true where left > right samples.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/HelperMaskBinaryRequest'
+      responses:
+        '200':
+          description: Serialized gt mask
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IndividualResponse'
+        '400':
+          description: Invalid payload
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/individual/helpers/NORM:
+    post:
+      operationId: helperNorm
+      tags: [Individual]
+      summary: NORM helper
+      description: Normalize a UValue interpreted as a non-negative simplex.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/HelperNormRequest'
+      responses:
+        '200':
+          description: Serialized normalized simplex
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IndividualResponse'
+        '400':
+          description: Invalid payload
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/individual/helpers/MERGE:
+    post:
+      operationId: helperMerge
+      tags: [Individual]
+      summary: MERGE helper
+      description: Combine multiple simplex UValues (and optional weights) into a weighted mixture.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/HelperMergeRequest'
+      responses:
+        '200':
+          description: Serialized merged simplex
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IndividualResponse'
+        '400':
+          description: Invalid payload
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/individual/helpers/MASK:
+    post:
+      operationId: helperMaskSimplex
+      tags: [Individual]
+      summary: MASK helper
+      description: Apply a simplex mask to a value to zero out masked indices.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/HelperMaskValueRequest'
+      responses:
+        '200':
+          description: Serialized masked simplex
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IndividualResponse'
+        '400':
+          description: Invalid payload
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/individual/helpers/PROJECT:
+    post:
+      operationId: helperProject
+      tags: [Individual]
+      summary: PROJECT helper
+      description: Keep only the indices specified by a tuple/array subset when projecting a simplex.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/HelperProjectRequest'
+      responses:
+        '200':
+          description: Serialized projected simplex
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IndividualResponse'
+        '400':
+          description: Invalid payload
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/individual/helpers/OVERLAP:
+    post:
+      operationId: helperOverlap
+      tags: [Individual]
+      summary: OVERLAP helper
+      description: Compute the overlap (per-index minimum) between two simplex distributions.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/HelperOverlapRequest'
+      responses:
+        '200':
+          description: Serialized overlap simplex
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IndividualResponse'
+        '400':
+          description: Invalid payload
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/individual/helpers/DOT:
+    post:
+      operationId: helperDot
+      tags: [Individual]
+      summary: DOT helper
+      description: Return the dot product of two simplex distributions as a scalar.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/HelperDotRequest'
+      responses:
+        '200':
+          description: Serialized dot-product scalar
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IndividualResponse'
+        '400':
+          description: Invalid payload
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/individual/helpers/DIST_L1:
+    post:
+      operationId: helperDistL1
+      tags: [Individual]
+      summary: DIST_L1 helper
+      description: Compute the L1 distance between two simplex distributions.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/HelperDistL1Request'
+      responses:
+        '200':
+          description: Serialized L1 distance scalar
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IndividualResponse'
+        '400':
+          description: Invalid payload
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/individual/helpers/collection:
+    post:
+      operationId: helperCollection
+      tags: [Individual]
+      summary: collection helper
+      description: Group multiple UValues into a single collection UValue.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/HelperCollectionRequest'
+      responses:
+        '200':
+          description: Serialized collection result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IndividualResponse'
+        '400':
+          description: Invalid payload
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/individual/helpers/inject:
+    post:
+      operationId: helperInject
+      tags: [Individual]
+      summary: inject helper
+      description: Insert a scalar or UValue sample at a specific index (and optional dimension).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/HelperInjectRequest'
+      responses:
+        '200':
+          description: Serialized inject result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IndividualResponse'
+        '400':
+          description: Invalid payload
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/individual/helpers/CANCEL:
+    post:
+      operationId: helperCancel
+      tags: [Individual]
+      summary: CANCEL helper
+      description: Apply UNS cancellation rules to two distributions and return the residual value.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/HelperCancelRequest'
+      responses:
+        '200':
+          description: Serialized CANCEL result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IndividualResponse'
+        '400':
+          description: Invalid payload
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/individual/helpers/MIX:
+    post:
+      operationId: helperMix
+      tags: [Individual]
+      summary: MIX helper
+      description: Blend two UValues with an alpha weight for quick interpolation experiments.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/HelperMixRequest'
+      responses:
+        '200':
+          description: Serialized MIX result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IndividualResponse'
+        '400':
+          description: Invalid payload
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 components:
   schemas:
     MicrostatesParam:
@@ -306,6 +806,205 @@ components:
       oneOf:
         - $ref: '#/components/schemas/ScalarInput'
         - $ref: '#/components/schemas/UValueInput'
+    ScalarLiteral:
+      description: Either a scalar payload or a plain real number (imag defaults to 0).
+      oneOf:
+        - $ref: '#/components/schemas/ScalarInput'
+        - type: number
+    HelperUniformStateRequest:
+      type: object
+      properties:
+        microstates:
+          $ref: '#/components/schemas/MicrostatesParam'
+    HelperDeltaStateRequest:
+      type: object
+      properties:
+        microstates:
+          $ref: '#/components/schemas/MicrostatesParam'
+        index:
+          $ref: '#/components/schemas/ScalarInput'
+      required: [index]
+    HelperStateRequest:
+      type: object
+      properties:
+        microstates:
+          $ref: '#/components/schemas/MicrostatesParam'
+        value:
+          $ref: '#/components/schemas/UValueInput'
+      required: [value]
+    HelperStateFromMaskRequest:
+      type: object
+      properties:
+        microstates:
+          $ref: '#/components/schemas/MicrostatesParam'
+        mask:
+          $ref: '#/components/schemas/UValueInput'
+      required: [mask]
+    HelperStateRangeRequest:
+      type: object
+      properties:
+        microstates:
+          $ref: '#/components/schemas/MicrostatesParam'
+        start:
+          $ref: '#/components/schemas/ScalarInput'
+        end:
+          $ref: '#/components/schemas/ScalarInput'
+      required: [start, end]
+    HelperMaskRangeRequest:
+      type: object
+      properties:
+        microstates:
+          $ref: '#/components/schemas/MicrostatesParam'
+        start:
+          $ref: '#/components/schemas/ScalarInput'
+        end:
+          $ref: '#/components/schemas/ScalarInput'
+      required: [start, end]
+    HelperMaskThresholdRequest:
+      type: object
+      properties:
+        microstates:
+          $ref: '#/components/schemas/MicrostatesParam'
+        value:
+          $ref: '#/components/schemas/UValueInput'
+        threshold:
+          $ref: '#/components/schemas/UValueInput'
+      required: [value, threshold]
+    HelperMaskBinaryRequest:
+      type: object
+      properties:
+        microstates:
+          $ref: '#/components/schemas/MicrostatesParam'
+        left:
+          $ref: '#/components/schemas/UValueInput'
+        right:
+          $ref: '#/components/schemas/UValueInput'
+      required: [left, right]
+    HelperNormRequest:
+      type: object
+      properties:
+        microstates:
+          $ref: '#/components/schemas/MicrostatesParam'
+        value:
+          $ref: '#/components/schemas/UValueInput'
+      required: [value]
+    HelperMergeRequest:
+      type: object
+      properties:
+        microstates:
+          $ref: '#/components/schemas/MicrostatesParam'
+        vectors:
+          type: array
+          minItems: 1
+          description: Each entry becomes a tuple element for MERGE.
+          items:
+            $ref: '#/components/schemas/UValueInput'
+        weights:
+          type: array
+          minItems: 1
+          description: Optional tuple of scalar weights aligned with vectors.
+          items:
+            $ref: '#/components/schemas/ScalarLiteral'
+      required: [vectors]
+    HelperMaskValueRequest:
+      type: object
+      properties:
+        microstates:
+          $ref: '#/components/schemas/MicrostatesParam'
+        value:
+          $ref: '#/components/schemas/UValueInput'
+        mask:
+          $ref: '#/components/schemas/UValueInput'
+      required: [value, mask]
+    HelperProjectRequest:
+      type: object
+      properties:
+        microstates:
+          $ref: '#/components/schemas/MicrostatesParam'
+        value:
+          $ref: '#/components/schemas/UValueInput'
+        subset:
+          type: array
+          minItems: 1
+          description: Integers or scalar payloads converted into the PROJECT tuple argument.
+          items:
+            $ref: '#/components/schemas/ScalarLiteral'
+      required: [value, subset]
+    HelperOverlapRequest:
+      type: object
+      properties:
+        microstates:
+          $ref: '#/components/schemas/MicrostatesParam'
+        u:
+          $ref: '#/components/schemas/UValueInput'
+        v:
+          $ref: '#/components/schemas/UValueInput'
+      required: [u, v]
+    HelperDotRequest:
+      type: object
+      properties:
+        microstates:
+          $ref: '#/components/schemas/MicrostatesParam'
+        u:
+          $ref: '#/components/schemas/UValueInput'
+        v:
+          $ref: '#/components/schemas/UValueInput'
+      required: [u, v]
+    HelperDistL1Request:
+      type: object
+      properties:
+        microstates:
+          $ref: '#/components/schemas/MicrostatesParam'
+        u:
+          $ref: '#/components/schemas/UValueInput'
+        v:
+          $ref: '#/components/schemas/UValueInput'
+      required: [u, v]
+    HelperCollectionRequest:
+      type: object
+      properties:
+        microstates:
+          $ref: '#/components/schemas/MicrostatesParam'
+        items:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/UValueInput'
+      required: [items]
+    HelperInjectRequest:
+      type: object
+      properties:
+        microstates:
+          $ref: '#/components/schemas/MicrostatesParam'
+        value:
+          $ref: '#/components/schemas/ScalarOrUValueInput'
+        index:
+          $ref: '#/components/schemas/ScalarInput'
+        dimension:
+          $ref: '#/components/schemas/ScalarInput'
+      required: [value, index]
+    HelperCancelRequest:
+      type: object
+      properties:
+        microstates:
+          $ref: '#/components/schemas/MicrostatesParam'
+        u:
+          $ref: '#/components/schemas/UValueInput'
+        v:
+          $ref: '#/components/schemas/UValueInput'
+      required: [u, v]
+    HelperMixRequest:
+      type: object
+      properties:
+        microstates:
+          $ref: '#/components/schemas/MicrostatesParam'
+        u:
+          $ref: '#/components/schemas/UValueInput'
+        v:
+          $ref: '#/components/schemas/UValueInput'
+        alpha:
+          $ref: '#/components/schemas/ScalarInput'
+      required: [u, v, alpha]
     KeywordConstRequest:
       type: object
       properties:
@@ -454,7 +1153,15 @@ components:
               - type: number
               - type: integer
               - type: array
+                items:
+                  oneOf:
+                    - type: string
+                    - type: number
+                    - type: integer
+                    - type: object
+                      additionalProperties: true
               - type: object
+                additionalProperties: true
       required: [op, args]
     EnvType:
       type: object
