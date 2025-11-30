@@ -19,6 +19,13 @@ const HELPER_SPECS = {
   mask_lt: { returnType: 'uvalue', required: ['uvalue', 'uvalue'], optional: [] },
   mask_gt: { returnType: 'uvalue', required: ['uvalue', 'uvalue'], optional: [] },
   mask_eq: { returnType: 'uvalue', required: ['uvalue', 'uvalue'], optional: [] },
+  NORM: { returnType: 'uvalue', required: ['uvalue'], optional: [] },
+  MERGE: { returnType: 'uvalue', required: ['tuple'], optional: ['tuple'] },
+  MASK: { returnType: 'uvalue', required: ['uvalue', 'uvalue'], optional: [] },
+  PROJECT: { returnType: 'uvalue', required: ['uvalue', 'tuple'], optional: [] },
+  OVERLAP: { returnType: 'uvalue', required: ['uvalue', 'uvalue'], optional: [] },
+  DOT: { returnType: 'scalar', required: ['uvalue', 'uvalue'], optional: [] },
+  DIST_L1: { returnType: 'scalar', required: ['uvalue', 'uvalue'], optional: [] },
   collection: { returnType: 'uvalue', required: [], optional: [], variadicType: 'uvalue' },
   inject: { returnType: 'uvalue', required: ['scalarOrUValue', 'scalar'], optional: ['scalar'] },
   CANCEL: { returnTuple: ['uvalue', 'uvalue'], required: ['uvalue', 'uvalue'], optional: [] },
@@ -53,6 +60,17 @@ const HELPER_CALLS = new Set([...Object.keys(HELPER_SPECS), 'uvalue_of', 'frac']
 
 const tupleType = (elements) => ({ kind: 'tuple', elements: Array.isArray(elements) ? [...elements] : [] });
 const isTupleType = (value) => Boolean(value && typeof value === 'object' && value.kind === 'tuple');
+
+function describeTypeName(value) {
+  if (typeof value === 'string') return value;
+  if (isTupleType(value)) {
+    const count = value.elements?.length;
+    const size = Number.isFinite(count) ? count : '?';
+    return `tuple(${size})`;
+  }
+  if (!value) return 'void';
+  return 'unknown';
+}
 
 function clampMicrostateCount(value) {
   if (!Number.isFinite(value)) return DEFAULT_MICROSTATES;
@@ -338,6 +356,7 @@ const UNSOperators = (() => {
 })();
 
 const UnaryLibrary = {
+  identity: (c) => cloneComplex(c),
   sqrt: (c, index, tracker) => {
     if (c.novelId) return cloneComplex(c);
     if (c.imag !== 0) {
@@ -499,7 +518,7 @@ function tokenize(source) {
     return ch;
   };
 
-  const peek = (offset = 0) => source[i + offset];
+  const peek = (offset = 0) => source[i + offset] ?? '';
 
   const emit = (type, value) => {
     tokens.push({ type, value, line, column });
@@ -531,6 +550,29 @@ function tokenize(source) {
 
     if (ch === '/') {
       throw new Error('Use lift2(divide, ...) or frac(a, b) for division');
+    }
+
+    const identTail = (offset) => source[i + offset] ?? '';
+    const isIdentChar = (char) => /[A-Za-z0-9_]/.test(char);
+
+    if (source.startsWith('NaN', i) && !isIdentChar(identTail(3))) {
+      advance();
+      advance();
+      advance();
+      emit('number', { re: NaN, im: 0 });
+      continue;
+    }
+
+    if (source.startsWith('-Infinity', i) && !isIdentChar(identTail(9))) {
+      for (let k = 0; k < 9; k += 1) advance();
+      emit('number', { re: -Infinity, im: 0 });
+      continue;
+    }
+
+    if (source.startsWith('Infinity', i) && !isIdentChar(identTail(8))) {
+      for (let k = 0; k < 8; k += 1) advance();
+      emit('number', { re: Infinity, im: 0 });
+      continue;
     }
 
     const two = source.slice(i, i + 2);
@@ -739,6 +781,17 @@ class Parser {
       return this.parseAssemble();
     }
 
+    if (this.match('punct', '{')) {
+      const items = [];
+      if (!this.match('punct', '}')) {
+        do {
+          items.push(this.parseExpr());
+        } while (this.match('punct', ','));
+        this.expect('punct', '}');
+      }
+      return { type: 'TupleLiteral', items };
+    }
+
     const helperCandidate = this.current();
     if (
       helperCandidate?.type === 'identifier' &&
@@ -909,7 +962,7 @@ class Compiler {
     if (expected === 'scalar') return this.ensureScalarType(type, label);
     if (expected === 'scalarOrUValue') {
       if (type === 'scalar' || type === 'uvalue') return type;
-      throw new Error(`${label} expects scalar or UValue but received ${type}`);
+      throw new Error(`${label} expects scalar or UValue but received ${describeTypeName(type)}`);
     }
     if (expected === 'stateLike') {
       if (type === 'ustate') return 'ustate';
@@ -918,7 +971,11 @@ class Compiler {
         this.emit('MAKE_CONST_UVALUE');
         return 'uvalue';
       }
-      throw new Error(`${label} expects UState or UValue but received ${type}`);
+      throw new Error(`${label} expects UState or UValue but received ${describeTypeName(type)}`);
+    }
+    if (expected === 'tuple') {
+      if (isTupleType(type)) return type;
+      throw new Error(`${label} expects tuple but received ${describeTypeName(type)}`);
     }
     return type;
   }
@@ -1086,6 +1143,11 @@ class Compiler {
         this.emit('LIFT2', 'divide');
         return 'uvalue';
       }
+      case 'TupleLiteral': {
+        const elementTypes = node.items.map((item) => this.emitExpr(item));
+        this.emit('BUILD_TUPLE', elementTypes.length);
+        return tupleType(elementTypes);
+      }
       case 'HelperCall': {
         const spec = HELPER_SPECS[node.name];
         if (!spec) throw new Error(`Unknown helper ${node.name}`);
@@ -1212,6 +1274,16 @@ class VirtualMachine {
     return simplex.map((value) => value / total);
   }
 
+  extractNonnegativeVector(ref) {
+    const values = this.heap.values[ref];
+    const vector = new Array(this.M);
+    for (let i = 0; i < this.M; i += 1) {
+      const magnitude = Math.max(0, decodeReal(magnitudeSquared(values[i])));
+      vector[i] = magnitude;
+    }
+    return vector;
+  }
+
   simplexToUValue(vector) {
     const arr = new Array(this.M);
     for (let i = 0; i < this.M; i += 1) {
@@ -1277,6 +1349,44 @@ class VirtualMachine {
   ensureUValueArg(value, helperName) {
     if (!value || value.kind !== 'uvalue') throw new Error(`${helperName} expects a UValue argument`);
     return value;
+  }
+
+  ensureTupleArg(value, label, { allowEmpty = false } = {}) {
+    if (!value || value.kind !== 'tuple') throw new Error(`${label} expects a tuple argument`);
+    const items = Array.isArray(value.items) ? value.items : [];
+    if (!allowEmpty && items.length === 0) {
+      throw new Error(`${label} tuple must include at least one entry`);
+    }
+    return items;
+  }
+
+  resolveUValueListArg(value, label) {
+    if (!value) throw new Error(`${label} is required`);
+    if (value.kind === 'tuple') {
+      const items = this.ensureTupleArg(value, label);
+      return items.map((item, idx) => this.ensureUValueArg(item, `${label}[${idx}]`));
+    }
+    return [this.ensureUValueArg(value, label)];
+  }
+
+  extractScalarList(value, label) {
+    if (!value) throw new Error(`${label} tuple is required`);
+    if (value.kind === 'tuple') {
+      const items = this.ensureTupleArg(value, label);
+      return items.map((item, idx) => this.scalarToFloat(item, `${label}[${idx}]`));
+    }
+    if (value.kind === 'scalar') {
+      return [this.scalarToFloat(value, label)];
+    }
+    throw new Error(`${label} expects scalar tuple`);
+  }
+
+  extractIndexList(value, label) {
+    const scalars = this.extractScalarList(value, label);
+    return scalars.map((entry, idx) => {
+      if (!Number.isFinite(entry)) throw new Error(`${label}[${idx}] must be finite`);
+      return Math.trunc(entry);
+    });
   }
 
   resolveStateValue(input) {
@@ -1677,6 +1787,49 @@ class VirtualMachine {
       case 'mask_eq':
         return this.applyBinaryLiftHelper('eq', args[0], args[1], 'mask_eq');
       case 'collection':
+      case 'NORM': {
+        const value = this.ensureUValueArg(args[0], 'NORM');
+        const normalized = UNSOperators.NORM(this.extractNonnegativeVector(value.ref));
+        return this.simplexToUValue(normalized);
+      }
+      case 'MERGE': {
+        const vectorArg = args[0];
+        const vectors = this.resolveUValueListArg(vectorArg, 'MERGE vectors');
+        const simplexVectors = vectors.map((entry) => this.extractSimplexVector(entry.ref));
+        const weights = args[1] ? this.extractScalarList(args[1], 'MERGE weights') : undefined;
+        const merged = UNSOperators.MERGE(simplexVectors, weights);
+        return this.simplexToUValue(merged);
+      }
+      case 'MASK': {
+        const value = this.ensureUValueArg(args[0], 'MASK value');
+        const mask = this.ensureUValueArg(args[1], 'MASK mask');
+        const result = UNSOperators.MASK(this.extractSimplexVector(value.ref), this.extractNonnegativeVector(mask.ref));
+        return this.simplexToUValue(result);
+      }
+      case 'PROJECT': {
+        const value = this.ensureUValueArg(args[0], 'PROJECT value');
+        const subset = this.extractIndexList(args[1], 'PROJECT subset');
+        const projected = UNSOperators.PROJECT(this.extractSimplexVector(value.ref), subset);
+        return this.simplexToUValue(projected);
+      }
+      case 'OVERLAP': {
+        const u = this.ensureUValueArg(args[0], 'OVERLAP u');
+        const v = this.ensureUValueArg(args[1], 'OVERLAP v');
+        const overlap = UNSOperators.OVERLAP(this.extractSimplexVector(u.ref), this.extractSimplexVector(v.ref));
+        return this.simplexToUValue(overlap);
+      }
+      case 'DOT': {
+        const u = this.ensureUValueArg(args[0], 'DOT u');
+        const v = this.ensureUValueArg(args[1], 'DOT v');
+        const dotValue = UNSOperators.DOT(this.extractSimplexVector(u.ref), this.extractSimplexVector(v.ref));
+        return this.makeScalarValue(dotValue, 0);
+      }
+      case 'DIST_L1': {
+        const u = this.ensureUValueArg(args[0], 'DIST_L1 u');
+        const v = this.ensureUValueArg(args[1], 'DIST_L1 v');
+        const distance = UNSOperators.DIST_L1(this.extractSimplexVector(u.ref), this.extractSimplexVector(v.ref));
+        return this.makeScalarValue(distance, 0);
+      }
         return this.buildCollection(args);
       case 'inject':
         return this.buildInjection(args[0], args[1], args[2]);
@@ -2054,6 +2207,15 @@ class VirtualMachine {
           }
           const result = this.invokeHelper(helperName, callArgs);
           if (result) this.push(result);
+          break;
+        }
+        case 'BUILD_TUPLE': {
+          const count = args[0] ?? 0;
+          const items = [];
+          for (let i = 0; i < count; i += 1) {
+            items.unshift(this.cloneValue(this.pop()));
+          }
+          this.push({ kind: 'tuple', items });
           break;
         }
         case 'BUILD_UVALUE_OF': {

@@ -859,6 +859,293 @@
         }
       }
     },
+    "/api/v1/individual/helpers/NORM": {
+      "post": {
+        "tags": [
+          "Individual"
+        ],
+        "summary": "Run the NORM helper",
+        "description": "Normalizes a UValue interpreted as a non-negative simplex and returns a probability distribution.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HelperNormRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Helper evaluation result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IndividualResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid payload",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/individual/helpers/MERGE": {
+      "post": {
+        "tags": [
+          "Individual"
+        ],
+        "summary": "Run the MERGE helper",
+        "description": "Combines multiple simplex UValues (and optional weights) into a weighted mixture, mirroring the IDE helper tuple syntax.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HelperMergeRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Helper evaluation result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IndividualResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid payload",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/individual/helpers/MASK": {
+      "post": {
+        "tags": [
+          "Individual"
+        ],
+        "summary": "Run the MASK helper",
+        "description": "Applies a simplex mask to a UValue, zeroing entries according to the mask tuple.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HelperMaskValueRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Helper evaluation result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IndividualResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid payload",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/individual/helpers/PROJECT": {
+      "post": {
+        "tags": [
+          "Individual"
+        ],
+        "summary": "Run the PROJECT helper",
+        "description": "Projects a simplex onto a subset of indices provided via an array/tuple of scalars.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HelperProjectRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Helper evaluation result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IndividualResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid payload",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/individual/helpers/OVERLAP": {
+      "post": {
+        "tags": [
+          "Individual"
+        ],
+        "summary": "Run the OVERLAP helper",
+        "description": "Computes the overlap between two simplex distributions (minimum per index).",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HelperOverlapRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Helper evaluation result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IndividualResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid payload",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/individual/helpers/DOT": {
+      "post": {
+        "tags": [
+          "Individual"
+        ],
+        "summary": "Run the DOT helper",
+        "description": "Returns the dot product (inner product) of two simplex UValues as a scalar.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HelperDotRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Helper evaluation result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IndividualResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid payload",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/individual/helpers/DIST_L1": {
+      "post": {
+        "tags": [
+          "Individual"
+        ],
+        "summary": "Run the DIST_L1 helper",
+        "description": "Computes the L1 distance between two simplex distributions and returns a scalar.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HelperDistL1Request"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Helper evaluation result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IndividualResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid payload",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/individual/helpers/collection": {
       "post": {
         "tags": [
@@ -1540,6 +1827,17 @@
           }
         ]
       },
+      "ScalarLiteral": {
+        "description": "Either a scalar payload with real/imag parts or a real number shortcut (imag assumed 0).",
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/ScalarInput"
+          },
+          {
+            "type": "number"
+          }
+        ]
+      },
       "KeywordConstRequest": {
         "allOf": [
           {
@@ -1780,6 +2078,170 @@
             "required": [
               "left",
               "right"
+            ]
+          }
+        ]
+      },
+      "HelperNormRequest": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/BaseIndividualRequest"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "value": {
+                "$ref": "#/components/schemas/UValueInput"
+              }
+            },
+            "required": [
+              "value"
+            ]
+          }
+        ]
+      },
+      "HelperMergeRequest": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/BaseIndividualRequest"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "vectors": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "$ref": "#/components/schemas/UValueInput"
+                },
+                "description": "Each entry becomes a tuple element before invoking MERGE."
+              },
+              "weights": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "$ref": "#/components/schemas/ScalarLiteral"
+                },
+                "description": "Optional tuple of scalar weights aligned with vectors."
+              }
+            },
+            "required": [
+              "vectors"
+            ]
+          }
+        ]
+      },
+      "HelperMaskValueRequest": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/BaseIndividualRequest"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "value": {
+                "$ref": "#/components/schemas/UValueInput"
+              },
+              "mask": {
+                "$ref": "#/components/schemas/UValueInput"
+              }
+            },
+            "required": [
+              "value",
+              "mask"
+            ]
+          }
+        ]
+      },
+      "HelperProjectRequest": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/BaseIndividualRequest"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "value": {
+                "$ref": "#/components/schemas/UValueInput"
+              },
+              "subset": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "$ref": "#/components/schemas/ScalarLiteral"
+                },
+                "description": "Integers or scalar payloads converted into the PROJECT tuple argument."
+              }
+            },
+            "required": [
+              "value",
+              "subset"
+            ]
+          }
+        ]
+      },
+      "HelperOverlapRequest": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/BaseIndividualRequest"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "u": {
+                "$ref": "#/components/schemas/UValueInput"
+              },
+              "v": {
+                "$ref": "#/components/schemas/UValueInput"
+              }
+            },
+            "required": [
+              "u",
+              "v"
+            ]
+          }
+        ]
+      },
+      "HelperDotRequest": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/BaseIndividualRequest"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "u": {
+                "$ref": "#/components/schemas/UValueInput"
+              },
+              "v": {
+                "$ref": "#/components/schemas/UValueInput"
+              }
+            },
+            "required": [
+              "u",
+              "v"
+            ]
+          }
+        ]
+      },
+      "HelperDistL1Request": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/BaseIndividualRequest"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "u": {
+                "$ref": "#/components/schemas/UValueInput"
+              },
+              "v": {
+                "$ref": "#/components/schemas/UValueInput"
+              }
+            },
+            "required": [
+              "u",
+              "v"
             ]
           }
         ]

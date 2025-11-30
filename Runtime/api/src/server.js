@@ -253,6 +253,37 @@ function registerHelperEndpoints() {
       parseUValueInput(body?.left, vm, 'left'),
       parseUValueInput(body?.right, vm, 'right')
     ],
+    NORM: (vm, body) => [parseUValueInput(body?.value, vm, 'value')],
+    MERGE: (vm, body) => {
+      const vectors = parseUValueArray(body?.vectors, vm, 'vectors');
+      const args = [makeTupleValue(vectors)];
+      if (Array.isArray(body?.weights) && body.weights.length) {
+        const weights = parseScalarArray(body.weights, vm, 'weights');
+        args.push(makeTupleValue(weights));
+      }
+      return args;
+    },
+    MASK: (vm, body) => [
+      parseUValueInput(body?.value, vm, 'value'),
+      parseUValueInput(body?.mask, vm, 'mask')
+    ],
+    PROJECT: (vm, body) => {
+      const value = parseUValueInput(body?.value, vm, 'value');
+      const subset = parseScalarArray(body?.subset, vm, 'subset', { allowEmpty: false });
+      return [value, makeTupleValue(subset)];
+    },
+    OVERLAP: (vm, body) => [
+      parseUValueInput(body?.u, vm, 'u'),
+      parseUValueInput(body?.v, vm, 'v')
+    ],
+    DOT: (vm, body) => [
+      parseUValueInput(body?.u, vm, 'u'),
+      parseUValueInput(body?.v, vm, 'v')
+    ],
+    DIST_L1: (vm, body) => [
+      parseUValueInput(body?.u, vm, 'u'),
+      parseUValueInput(body?.v, vm, 'v')
+    ],
     collection: (vm, body) => {
       const items = Array.isArray(body?.items) ? body.items : [];
       if (!items.length) throw createBadRequest('items must include at least one UValue payload.');
@@ -418,6 +449,39 @@ function parseUStateInput(payload, vm, label) {
   const dimension = payload.dimension === undefined ? 0 : parseDimension(payload.dimension, `${label}.dimension`);
   const required = Math.max(amplitudes.length, dimension, 1);
   if (required > vm.M) vm.ensureMicrostates(required);
+
+function parseUValueArray(payload, vm, label) {
+  if (!Array.isArray(payload) || !payload.length) {
+    throw createBadRequest(`${label} must include at least one UValue payload.`);
+  }
+  return payload.map((entry, index) => parseUValueInput(entry, vm, `${label}[${index}]`));
+}
+
+function parseScalarLikeInput(payload, vm, label) {
+  if (payload !== null && typeof payload === 'object') {
+    return parseScalarValueInput(payload, vm, label);
+  }
+  if (typeof payload === 'number') {
+    if (!Number.isFinite(payload)) throw createBadRequest(`${label} must be finite.`);
+    return vm.makeScalarValue(payload, 0);
+  }
+  throw createBadRequest(`${label} entry must be a scalar payload or number.`);
+}
+
+function parseScalarArray(payload, vm, label, options = {}) {
+  if (!Array.isArray(payload)) {
+    if (options.allowEmpty) return [];
+    throw createBadRequest(`${label} must be an array of scalars.`);
+  }
+  if (!payload.length && !options.allowEmpty) {
+    throw createBadRequest(`${label} must include at least one scalar entry.`);
+  }
+  return payload.map((entry, index) => parseScalarLikeInput(entry, vm, `${label}[${index}]`));
+}
+
+function makeTupleValue(items) {
+  return { kind: 'tuple', items };
+}
   const arr = new Array(vm.M);
   for (let i = 0; i < vm.M; i += 1) {
     const amp = amplitudes[i] ?? { real: 0, imag: 0 };
