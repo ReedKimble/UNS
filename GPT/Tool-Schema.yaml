@@ -4,7 +4,7 @@ info:
   version: 0.1.0
   description: Core UNS runtime endpoints (compile, execute, read, examples, and keyword helpers) exposed to GPT callers.
 servers:
-  - url: https://uns-phi.vercel.app
+  - url: {VERCEL_URL}
     description: Production Vercel deployment
 tags:
   - name: Composite

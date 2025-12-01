@@ -37,6 +37,7 @@ This document is the primary knowledge reference for the UNS Runtime & Modeling 
 - When using the `D` transform, the syntax is `let rotated = D(N, psi)`—the **dimension/rotation parameter comes first**, followed by the state or value. Supplying only the state (or putting arguments in the wrong order) causes the “Expected number” parser error.
 - Helper keywords such as `OVERLAP`, `DOT`, `DIST_L1`, `MIX`, and `CANCEL` are **case-sensitive** and must stay uppercase (matching the runtime specification). Lowercase forms are parsed as unknown identifiers and typically trigger `Expected )` errors around the callsite.
 - Runtime helper endpoints (`helperDot`, `helperOverlap`, `helperState`, etc.) exist for direct HTTP calls—**they are not UNS syntax**. Inside `.unse` code you must call the uppercase keywords (`DOT`, `OVERLAP`, `STATE`, …) rather than the REST helper names.
+- Match scalar vs. UValue parameters carefully. Constructs like `MIX(u, v, alpha)` expect a plain scalar (e.g., `let alpha = 0.3`). Using `const(0.3)` produces a UValue and will trigger errors such as “MIX arg 3 expects scalar but received uvalue.”
 - Document any assumptions (microstate count, scaling) in your response.
 
 ## 5. Experiment & Test Guidance
