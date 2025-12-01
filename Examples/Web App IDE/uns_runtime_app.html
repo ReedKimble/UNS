@@ -36,6 +36,150 @@
 
     main {
       flex: 1;
+        case 'tanU': {
+          const value = this.ensureUValueArg(args[0], 'tanU');
+          const sinValue = this.applyUnaryLiftHelper('sin', value, 'tanU sin');
+          const cosValue = this.applyUnaryLiftHelper('cos', value, 'tanU cos');
+          return this.applyBinaryLiftHelper('divide', sinValue, cosValue, 'tanU divide');
+        }
+        case 'cotU': {
+          const value = this.ensureUValueArg(args[0], 'cotU');
+          const sinValue = this.applyUnaryLiftHelper('sin', value, 'cotU sin');
+          const cosValue = this.applyUnaryLiftHelper('cos', value, 'cotU cos');
+          return this.applyBinaryLiftHelper('divide', cosValue, sinValue, 'cotU divide');
+        }
+        case 'secU': {
+          const value = this.ensureUValueArg(args[0], 'secU');
+          const cosValue = this.applyUnaryLiftHelper('cos', value, 'secU cos');
+          const one = this.makeConstUValue(1);
+          return this.applyBinaryLiftHelper('divide', one, cosValue, 'secU divide');
+        }
+        case 'cscU': {
+          const value = this.ensureUValueArg(args[0], 'cscU');
+          const sinValue = this.applyUnaryLiftHelper('sin', value, 'cscU sin');
+          const one = this.makeConstUValue(1);
+          return this.applyBinaryLiftHelper('divide', one, sinValue, 'cscU divide');
+        }
+        case 'log10U': {
+          const value = this.ensureUValueArg(args[0], 'log10U');
+          const natural = this.applyUnaryLiftHelper('log', value, 'log10U log');
+          const denom = this.makeConstUValue(Math.log(10));
+          return this.applyBinaryLiftHelper('divide', natural, denom, 'log10U divide');
+        }
+        case 'log2U': {
+          const value = this.ensureUValueArg(args[0], 'log2U');
+          const natural = this.applyUnaryLiftHelper('log', value, 'log2U log');
+          const denom = this.makeConstUValue(Math.log(2));
+          return this.applyBinaryLiftHelper('divide', natural, denom, 'log2U divide');
+        }
+        case 'log1pU': {
+          const value = this.ensureUValueArg(args[0], 'log1pU');
+          const one = this.makeConstUValue(1);
+          const shifted = this.invokeHelper('addU', [value, one]);
+          return this.applyUnaryLiftHelper('log', shifted, 'log1pU log');
+        }
+        case 'asinU': {
+          const value = this.ensureUValueArg(args[0], 'asinU');
+          const squared = this.invokeHelper('mulU', [value, value]);
+          const one = this.makeConstUValue(1);
+          const inside = this.invokeHelper('subU', [one, squared]);
+          const sqrtTerm = this.applyUnaryLiftHelper('sqrt', inside, 'asinU sqrt');
+          const ratio = this.applyBinaryLiftHelper('divide', value, sqrtTerm, 'asinU ratio');
+          return this.applyUnaryLiftHelper('atan', ratio, 'asinU atan');
+        }
+        case 'acosU': {
+          const value = this.ensureUValueArg(args[0], 'acosU');
+          const asinValue = this.invokeHelper('asinU', [value]);
+          const halfPi = this.makeConstUValue(Math.PI / 2);
+          return this.invokeHelper('subU', [halfPi, asinValue]);
+        }
+        case 'hypotU': {
+          const a = this.ensureUValueArg(args[0], 'hypotU a');
+          const b = this.ensureUValueArg(args[1], 'hypotU b');
+          const aSquared = this.invokeHelper('mulU', [a, a]);
+          const bSquared = this.invokeHelper('mulU', [b, b]);
+          const sum = this.invokeHelper('addU', [aSquared, bSquared]);
+          return this.applyUnaryLiftHelper('sqrt', sum, 'hypotU sqrt');
+        }
+        case 'cbrtU': {
+          const value = this.ensureUValueArg(args[0], 'cbrtU');
+          const magnitude = this.applyUnaryLiftHelper('abs', value, 'cbrtU abs');
+          const exponent = this.makeConstUValue(1 / 3);
+          const root = this.applyBinaryLiftHelper('pow', magnitude, exponent, 'cbrtU pow');
+          const sign = this.buildSignUValue(value, 'cbrtU sign');
+          return this.invokeHelper('mulU', [root, sign]);
+        }
+        case 'signU':
+          return this.buildSignUValue(args[0], 'signU');
+        case 'copySignU': {
+          const magnitudeSource = this.ensureUValueArg(args[0], 'copySignU magnitude');
+          const magnitude = this.applyUnaryLiftHelper('abs', magnitudeSource, 'copySignU abs');
+          const sign = this.buildSignUValue(args[1], 'copySignU reference');
+          return this.invokeHelper('mulU', [magnitude, sign]);
+        }
+        case 'minU': {
+          const left = this.ensureUValueArg(args[0], 'minU left');
+          const right = this.ensureUValueArg(args[1], 'minU right');
+          const mask = this.applyBinaryLiftHelper('lt', left, right, 'minU mask');
+          return this.maskSelect(mask, left, right, 'minU select');
+        }
+        case 'maxU': {
+          const left = this.ensureUValueArg(args[0], 'maxU left');
+          const right = this.ensureUValueArg(args[1], 'maxU right');
+          const mask = this.applyBinaryLiftHelper('gt', left, right, 'maxU mask');
+          return this.maskSelect(mask, left, right, 'maxU select');
+        }
+        case 'clampU': {
+          const value = this.ensureUValueArg(args[0], 'clampU value');
+          const minBound = this.ensureUValueArg(args[1], 'clampU min');
+          const maxBound = this.ensureUValueArg(args[2], 'clampU max');
+          const raised = this.invokeHelper('maxU', [value, minBound]);
+          return this.invokeHelper('minU', [raised, maxBound]);
+        }
+        case 'atan2U': {
+          const y = this.ensureUValueArg(args[0], 'atan2U y');
+          const x = this.ensureUValueArg(args[1], 'atan2U x');
+          const ratio = this.applyBinaryLiftHelper('divide', y, x, 'atan2U ratio');
+          const base = this.applyUnaryLiftHelper('atan', ratio, 'atan2U atan');
+          const arrX = this.heap.values[x.ref] ?? [];
+          const arrY = this.heap.values[y.ref] ?? [];
+          const arrBase = this.heap.values[base.ref] ?? [];
+          const arrRatio = this.heap.values[ratio.ref] ?? [];
+          this.assertDimension(arrX, 'atan2U x');
+          this.assertDimension(arrY, 'atan2U y');
+          this.assertDimension(arrBase, 'atan2U base');
+          this.assertDimension(arrRatio, 'atan2U ratio');
+          const out = new Array(this.M);
+          for (let i = 0; i < this.M; i++) {
+            const xSample = arrX[i] ?? { real: 0, imag: 0 };
+            const ySample = arrY[i] ?? { real: 0, imag: 0 };
+            const baseSample = arrBase[i] ?? { real: 0, imag: 0 };
+            const ratioSample = arrRatio[i] ?? { real: 0, imag: 0 };
+            let novelId = xSample.novelId || ySample.novelId || ratioSample.novelId || baseSample.novelId;
+            const xMagnitude = Math.abs(decodeReal(magnitudeSquared(xSample)));
+            const xReal = decodeReal(xSample.real ?? 0);
+            const yReal = decodeReal(ySample.real ?? 0);
+            let angle = decodeReal(baseSample.real ?? 0);
+            if (!novelId) {
+              if (xMagnitude < SMALL_VALUE_EPSILON) {
+                if (Math.abs(yReal) < SMALL_VALUE_EPSILON) {
+                  novelId = this.heap.novels.record('atan2', [complexToFloat(xSample), complexToFloat(ySample)], i);
+                } else {
+                  angle = yReal > 0 ? Math.PI / 2 : -Math.PI / 2;
+                }
+              } else if (xReal < 0) {
+                angle += yReal >= 0 ? Math.PI : -Math.PI;
+              }
+            }
+            if (novelId) {
+              out[i] = { real: 0, imag: 0, novelId };
+            } else {
+              out[i] = { real: encodeReal(angle), imag: 0 };
+            }
+          }
+          const ref = this.allocateUValue(out);
+          return { kind: 'uvalue', ref };
+        }
       display: flex;
       flex-direction: column;
       gap: 1rem;
@@ -1168,6 +1312,23 @@
         mulU: { returnType: 'uvalue', required: ['uvalue', 'uvalue'], optional: [] },
         divU: { returnType: 'uvalue', required: ['uvalue', 'uvalue'], optional: [] },
         powU: { returnType: 'uvalue', required: ['uvalue', 'uvalue'], optional: [] },
+        tanU: { returnType: 'uvalue', required: ['uvalue'], optional: [] },
+        cotU: { returnType: 'uvalue', required: ['uvalue'], optional: [] },
+        secU: { returnType: 'uvalue', required: ['uvalue'], optional: [] },
+        cscU: { returnType: 'uvalue', required: ['uvalue'], optional: [] },
+        asinU: { returnType: 'uvalue', required: ['uvalue'], optional: [] },
+        acosU: { returnType: 'uvalue', required: ['uvalue'], optional: [] },
+        log10U: { returnType: 'uvalue', required: ['uvalue'], optional: [] },
+        log2U: { returnType: 'uvalue', required: ['uvalue'], optional: [] },
+        log1pU: { returnType: 'uvalue', required: ['uvalue'], optional: [] },
+        hypotU: { returnType: 'uvalue', required: ['uvalue', 'uvalue'], optional: [] },
+        cbrtU: { returnType: 'uvalue', required: ['uvalue'], optional: [] },
+        signU: { returnType: 'uvalue', required: ['uvalue'], optional: [] },
+        copySignU: { returnType: 'uvalue', required: ['uvalue', 'uvalue'], optional: [] },
+        minU: { returnType: 'uvalue', required: ['uvalue', 'uvalue'], optional: [] },
+        maxU: { returnType: 'uvalue', required: ['uvalue', 'uvalue'], optional: [] },
+        clampU: { returnType: 'uvalue', required: ['uvalue', 'uvalue', 'uvalue'], optional: [] },
+        atan2U: { returnType: 'uvalue', required: ['uvalue', 'uvalue'], optional: [] },
         printU: { returnType: 'void', required: ['uvalue'], optional: [] },
         plotU: { returnType: 'void', required: ['uvalue'], optional: [] }
       };
@@ -1202,6 +1363,7 @@
         ['helperproject', { canonical: 'PROJECT', tupleIndex: 1 }]
       ]);
       const PRECEDENCE = { "+u": 1, "*u": 2, "*s": 2 };
+      const SMALL_VALUE_EPSILON = 1e-6;
       const tupleType = (elements) => ({ kind: 'tuple', elements: Array.isArray(elements) ? [...elements] : [] });
       const isTupleType = (value) => Boolean(value && typeof value === 'object' && value.kind === 'tuple');
       function buildCaseLookup(words) {
@@ -4620,6 +4782,43 @@ printU(unstable)`
           return scalar;
         }
 
+        makeConstUValue(real, imag = 0) {
+          const safeReal = Number.isFinite(real) ? real : 0;
+          const safeImag = Number.isFinite(imag) ? imag : 0;
+          const template = { real: encodeReal(safeReal), imag: encodeReal(safeImag) };
+          const arr = Array.from({ length: this.M }, () => cloneComplex(template));
+          const ref = this.allocateUValue(arr);
+          return { kind: 'uvalue', ref };
+        }
+
+        invertMask(maskArg, label) {
+          const mask = this.ensureUValueArg(maskArg, label);
+          const one = this.makeConstUValue(1);
+          return this.invokeHelper('subU', [one, mask]);
+        }
+
+        maskSelect(maskArg, whenTrueArg, whenFalseArg, label) {
+          const mask = this.ensureUValueArg(maskArg, `${label} mask`);
+          const whenTrue = this.ensureUValueArg(whenTrueArg, `${label} true branch`);
+          const whenFalse = this.ensureUValueArg(whenFalseArg, `${label} false branch`);
+          const complement = this.invertMask(mask, `${label} invert`);
+          const truePart = this.invokeHelper('mulU', [mask, whenTrue]);
+          const falsePart = this.invokeHelper('mulU', [complement, whenFalse]);
+          return this.invokeHelper('addU', [truePart, falsePart]);
+        }
+
+        buildSignUValue(valueArg, label) {
+          const value = this.ensureUValueArg(valueArg, label);
+          const zero = this.makeConstUValue(0);
+          const positiveMask = this.applyBinaryLiftHelper('gt', value, zero, `${label} positive mask`);
+          const negativeMask = this.applyBinaryLiftHelper('lt', value, zero, `${label} negative mask`);
+          const one = this.makeConstUValue(1);
+          const negOne = this.makeConstUValue(-1);
+          const positive = this.invokeHelper('mulU', [positiveMask, one]);
+          const negative = this.invokeHelper('mulU', [negativeMask, negOne]);
+          return this.invokeHelper('addU', [positive, negative]);
+        }
+
         sampleUValueAt(uvalueRef, index) {
           const arr = this.heap.values[uvalueRef] ?? [];
           const clamped = this.clampIndexPosition(index);
@@ -5485,6 +5684,15 @@ printU(unstable)`
             return { real: 0, imag: 0, novelId: id };
           }
           const value = Math.log(decodeReal(c.real));
+          return { real: encodeReal(value), imag: 0 };
+        },
+        atan: (c, index, tracker) => {
+          if (c.novelId) return cloneComplex(c);
+          if (c.imag !== 0) {
+            const id = tracker.record('atan', [complexToFloat(c)], index);
+            return { real: 0, imag: 0, novelId: id };
+          }
+          const value = Math.atan(decodeReal(c.real));
           return { real: encodeReal(value), imag: 0 };
         },
         conj: (c) => ({ real: c.real, imag: -c.imag, novelId: c.novelId }),

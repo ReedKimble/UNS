@@ -160,6 +160,7 @@ Keep `GPT/Master-Guidance.md` and `GPT/How-to-use-Tools.md` nearby. Encourage GP
 - Use helper endpoints when only a single keyword result is required (const, lift, D, etc.).
 - Respect scalar vs. UValue rules (e.g., `read(value | state)` demands a UValue on the left, `MIX` expects a scalar alpha).
 - Surface novels, clamping, and microstate assumptions in explanations.
+- When runs produce large traces, call `/api/v1/runtime/execute` with `summary_mode=true` and follow up with `/runtime/export` or `/runtime/import` to stream only the sections you need.
 
 These practices produce valid UNS programs on the first try.
 

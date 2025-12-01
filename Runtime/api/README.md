@@ -15,8 +15,10 @@ This service exposes the Universal Number Set (UNS) runtime as a stateless REST 
 | --- | --- | --- |
 | `GET` | `/api/v1/health` | Liveness ping. |
 | `POST` | `/api/v1/runtime/compile` | Tokenize + parse + compile without executing. Returns AST, tokens, instructions. |
-| `POST` | `/api/v1/runtime/execute` | Compile + execute, returning the final stack value, binding summaries, trace, diagnostics, and optional readouts. |
+| `POST` | `/api/v1/runtime/execute` | Compile + execute. Accepts `summary_mode`, `stream_mode`, and `trace_detail` to control payload size plus optional `reads`. |
 | `POST` | `/api/v1/runtime/read` | Convenience endpoint that executes a program and returns `read(value \| state)` results for specific bindings. |
+| `POST` | `/api/v1/runtime/export` | Run a program once and return both a concise summary and a full artifact blob (optionally NDJSON streamed) for later slicing. |
+| `POST` | `/api/v1/runtime/import` | Rehydrate/export slices from a previously produced artifact payload (supports pagination + NDJSON streaming). |
 | `GET` | `/api/v1/examples` | Lists bundled `.unse` sample programs (reads from `Examples/*.unse`). |
 | `GET` | `/api/v1/examples/{id}` | Returns the full source for a sample by slug/id. |
 | `GET` | `/openapi.json` | Serves the OpenAPI document (also mounted under `/docs`). |
@@ -29,6 +31,16 @@ The runtime also exposes **individual keyword/helper endpoints** under `/api/v1/
 | `POST` | `/api/v1/individual/helpers/{uniform_state|state|delta_state|...}` | Generate states, masks, masks, or simplex utilities directly. |
 
 Consult `Runtime/api/openapi/openapi.yaml` (or the generated Swagger UI) for the full list that mirrors `GPT/Tool-Schema.yaml`.
+
+### Summary + Artifact Workflow
+
+- **`summary_mode` (execute):** Set to `true` to receive only a compact run summary plus pointers to `/runtime/export` + `/runtime/import`. Use this when payloads would otherwise exceed GPT/tool size limits. The response also echoes your chosen `trace_detail` (`none`, `summary`, `full`).
+- **`stream_mode` (execute/export):** Set to `true` when you plan to immediately call `/runtime/export` with `{"format":"ndjson"}` so the artifact can be streamed chunk-by-chunk over NDJSON.
+- **`trace_detail`:** Controls how much of the VM trace is embedded in the artifact—`none`, `summary` (first 64 entries), or `full`.
+- **`POST /runtime/export`:** Re-runs the program (respecting `microstates`, `reads`, and `trace_detail`) and returns `{ summary, artifact }`. Use `format=ndjson` to stream large traces/diagnostics without holding them all in memory.
+- **`POST /runtime/import`:** Provide the `artifact` object from an export (or the summary response when `summary_mode=true`) and request specific slices via `type` (`full`, `trace`, `diagnostics`, `heap`, `reads`, `instructions`). Optional `offset` + `limit` enable pagination, and `format=ndjson` streams each slice lazily.
+
+This stateless workflow lets IDEs or GPT actions capture heavy results without server-side run registries: initiate with `/runtime/execute` + `summary_mode=true`, persist the returned artifact client-side, and call `/runtime/import` whenever you need a specific segment (trace pages, binding previews, diagnostics, etc.).
 
 ## Runtime Reuse Strategy
 
@@ -80,6 +92,44 @@ $body = @{
 } | ConvertTo-Json -Depth 5
 
 Invoke-RestMethod -Method Post -Uri http://localhost:7070/api/v1/runtime/read -ContentType application/json -Body $body
+```
+
+Request only a summary (keep the full artifact client-side):
+
+```powershell
+$summaryBody = @{
+	source = "let x = lift1(index, const(0));"
+	summary_mode = $true
+	trace_detail = "summary"  # none | summary | full
+} | ConvertTo-Json
+
+$summary = Invoke-RestMethod -Method Post -Uri http://localhost:7070/api/v1/runtime/execute -ContentType application/json -Body $summaryBody
+# $summary.detail_links.export points at POST /api/v1/runtime/export
+```
+
+Export the full artifact with NDJSON streaming:
+
+```powershell
+$export = Invoke-RestMethod -Method Post -Uri http://localhost:7070/api/v1/runtime/export -ContentType application/json -Body (@{
+	source = "let noise = lift1(sin, const(0));"
+	trace_detail = "full"
+	format = "json"  # set to ndjson for streaming
+} | ConvertTo-Json)
+
+# When format = ndjson use Invoke-WebRequest and stream line-by-line instead of buffering
+```
+
+Import a previously returned artifact slice:
+
+```powershell
+$artifact = $export.artifact
+
+$tracePage = Invoke-RestMethod -Method Post -Uri http://localhost:7070/api/v1/runtime/import -ContentType application/json -Body (@{
+	artifact = $artifact
+	type = "trace"
+	offset = 0
+	limit = 64
+} | ConvertTo-Json)
 ```
 
 ## OpenAPI Contract

@@ -62,6 +62,10 @@ You have a reduced but sufficient set of endpoints. Choose among them deliberate
   - This is your **primary workhorse**.
   - Use when the user wants to run a complete UNS program and see the final result, binding summaries, emitted trace, diagnostics, and any inline `reads` you include.
   - Accepts optional `microstates` (1–32768) so you can scale experiments without editing the UNS source.
+  - New flags:
+    - `summary_mode`: return only a compact run summary plus links to `/runtime/export` + `/runtime/import` so you can fetch heavy sections later.
+    - `trace_detail`: choose `none`, `summary`, or `full` trace retention inside the exported artifact.
+    - `stream_mode`: hint that you plan to call `/runtime/export` with `format = ndjson` for streaming delivery (helps users know what to expect in responses).
 - **`readMeasurements` (`POST /api/v1/runtime/read`)**
   - Use when the user cares about specific named measurements (`read(value|state)` pairs) and not the full trace.
   - Example: user asks “What is this particular observable/result?” — you can instrument the program and use `read` to pull those values.
@@ -69,6 +73,13 @@ You have a reduced but sufficient set of endpoints. Choose among them deliberate
 **Rule of thumb:**
 - Use `compileProgram` + `executeProgram` for design + execution.
 - Use `readMeasurements` when the program contains multiple reads and the user wants a subset of outputs.
+
+#### 3.2.1 Managing Large Payloads
+
+- When GPT token limits are tight, call `executeProgram` with `summary_mode=true` so the response stays small. Persist the returned `summary` + `detail_links` client-side.
+- If you immediately need the full artifact, call `POST /api/v1/runtime/export` with the same `source`/`microstates`. Set `format="ndjson"` (and `stream_mode=true` in the execute call) to stream the run as newline-delimited JSON for incremental consumption.
+- Use `POST /api/v1/runtime/import` whenever you only need a slice of an existing artifact. Set `type` to `trace`, `heap`, `diagnostics`, `reads`, `instructions`, or `full`, and use `offset`/`limit` to paginate massive traces.
+- Never assume the server stores past runs. The artifact you receive is self-contained—save it if you plan to call `import` later.
 
 
 ### 3.3 Individual Keywords (Small Experiments)

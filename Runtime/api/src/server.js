@@ -6,6 +6,7 @@ const express = require('express');
 const cors = require('cors');
 const swaggerUi = require('swagger-ui-express');
 const yaml = require('js-yaml');
+const { performance } = require('perf_hooks');
 
 const {
   compileSource,
@@ -26,6 +27,7 @@ const repoRoot = path.resolve(__dirname, '..', '..', '..');
 const examplesDir = path.join(repoRoot, 'Examples');
 const openapiPath = path.resolve(__dirname, '..', 'openapi', 'openapi.yaml');
 const fsp = fs.promises;
+const TRACE_DETAIL_OPTIONS = new Set(['none', 'summary', 'full']);
 
 app.use(cors());
 app.use(express.json({ limit: '512kb' }));
@@ -72,11 +74,37 @@ app.post(`${API_PREFIX}/runtime/compile`, (req, res) => {
 
 app.post(`${API_PREFIX}/runtime/execute`, (req, res) => {
   try {
-    const source = requireSource(req.body);
-    const microstates = parseMicrostatesInput(req.body?.microstates);
-    const reads = Array.isArray(req.body?.reads) ? req.body.reads : undefined;
+    const body = req.body ?? {};
+    const source = requireSource(body);
+    const microstates = parseMicrostatesInput(body.microstates);
+    const reads = Array.isArray(body.reads) ? body.reads : undefined;
+    const summaryMode = parseBooleanFlag(body.summary_mode);
+    const streamMode = parseBooleanFlag(body.stream_mode);
+    const traceDetail = parseTraceDetail(body.trace_detail);
+    const started = performance.now();
     const result = executeSource(source, { microstates, reads });
-    res.json(result);
+    const durationMs = performance.now() - started;
+
+    if (!summaryMode) {
+      res.json(result);
+      return;
+    }
+
+    const artifactPayload = prepareArtifactPayload(result, traceDetail);
+    const summary = buildExecutionSummary(artifactPayload, durationMs);
+    const response = {
+      summary,
+      microstates: artifactPayload.microstates,
+      duration_ms: summary.durationMs,
+      detail_strategy: 'export',
+      detail_links: {
+        export: `${API_PREFIX}/runtime/export`,
+        import: `${API_PREFIX}/runtime/import`
+      },
+      trace_detail: traceDetail,
+      stream_hint: streamMode ? 'Use POST /runtime/export with format=ndjson to stream full output.' : undefined
+    };
+    res.json(response);
   } catch (err) {
     sendError(res, err, 400);
   }
@@ -92,6 +120,53 @@ app.post(`${API_PREFIX}/runtime/read`, (req, res) => {
     const microstates = parseMicrostatesInput(req.body?.microstates);
     const result = executeSource(source, { microstates, reads });
     res.json({ reads: result.reads, bindings: result.bindings, microstates: result.microstates });
+  } catch (err) {
+    sendError(res, err, 400);
+  }
+});
+
+app.post(`${API_PREFIX}/runtime/export`, (req, res) => {
+  try {
+    const body = req.body ?? {};
+    const source = requireSource(body);
+    const microstates = parseMicrostatesInput(body.microstates);
+    const reads = Array.isArray(body.reads) ? body.reads : undefined;
+    const traceDetail = parseTraceDetail(body.trace_detail ?? 'full');
+    const format = parseExportFormat(body.format);
+    const started = performance.now();
+    const result = executeSource(source, { microstates, reads });
+    const durationMs = performance.now() - started;
+    const artifact = prepareArtifactPayload(result, traceDetail);
+    const summary = buildExecutionSummary(artifact, durationMs);
+
+    if (format === 'ndjson') {
+      streamNdjson(res, { summary, microstates: artifact.microstates }, artifact);
+      return;
+    }
+
+    res.json({ summary, artifact, trace_detail: traceDetail });
+  } catch (err) {
+    sendError(res, err, 400);
+  }
+});
+
+app.post(`${API_PREFIX}/runtime/import`, (req, res) => {
+  try {
+    const body = req.body ?? {};
+    const artifact = parseArtifactInput(body.artifact ?? body.payload);
+    const type = (body.type ?? 'full').toString().toLowerCase();
+    const format = parseExportFormat(body.format ?? 'json');
+    const offset = parseOptionalInt(body.offset);
+    const limit = parseOptionalInt(body.limit);
+    const payload = selectRunPayload(artifact, type);
+    const { data, page } = applyPagination(payload, offset, limit);
+
+    if (format === 'ndjson') {
+      streamNdjson(res, { type, page }, data);
+      return;
+    }
+
+    res.json({ type, payload: data, pagination: page });
   } catch (err) {
     sendError(res, err, 400);
   }
@@ -399,6 +474,149 @@ function createVm(body) {
   return new VirtualMachine({ microstates });
 }
 
+function parseBooleanFlag(value) {
+  if (value === true || value === false) return value;
+  if (typeof value === 'string') {
+    const normalized = value.toLowerCase().trim();
+    return ['1', 'true', 'yes', 'on'].includes(normalized);
+  }
+  if (typeof value === 'number') {
+    return value !== 0;
+  }
+  return false;
+}
+
+function parseTraceDetail(value) {
+  if (typeof value !== 'string') return 'summary';
+  const normalized = value.toLowerCase().trim();
+  if (TRACE_DETAIL_OPTIONS.has(normalized)) return normalized;
+  return 'summary';
+}
+
+function parseExportFormat(value) {
+  if (typeof value !== 'string') return 'json';
+  const normalized = value.toLowerCase().trim();
+  if (normalized === 'ndjson') return 'ndjson';
+  return 'json';
+}
+
+function prepareArtifactPayload(result, traceDetail) {
+  if (!result || typeof result !== 'object') return result;
+  const payload = { ...result };
+  if (traceDetail === 'none') {
+    payload.trace = [];
+    payload.trace_truncated = false;
+  } else if (traceDetail === 'summary') {
+    const summaryLimit = 64;
+    const trace = Array.isArray(result.trace) ? result.trace : [];
+    payload.trace = trace.slice(0, summaryLimit);
+    payload.trace_truncated = trace.length > summaryLimit;
+  } else {
+    payload.trace_truncated = false;
+  }
+  return payload;
+}
+
+function buildExecutionSummary(result, durationMs) {
+  const diagnostics = result?.diagnostics ?? {};
+  const trace = Array.isArray(result?.trace) ? result.trace : [];
+  const reads = Array.isArray(result?.reads) ? result.reads : [];
+  return {
+    microstates: result?.microstates ?? null,
+    bindingCount: Array.isArray(result?.bindings) ? result.bindings.length : 0,
+    readCount: reads.length,
+    diagnostics: {
+      print: Array.isArray(diagnostics.print) ? diagnostics.print.length : 0,
+      plots: Array.isArray(diagnostics.plots) ? diagnostics.plots.length : 0
+    },
+    traceLength: trace.length,
+    traceTruncated: Boolean(result?.trace_truncated),
+    novelCount: countNovelEntries(reads, result?.result),
+    durationMs: Math.round(durationMs)
+  };
+}
+
+function countNovelEntries(reads = [], finalResult) {
+  let count = 0;
+  reads.forEach((entry) => {
+    if (entry?.novelId != null) count += 1;
+  });
+  if (finalResult?.novelId != null) count += 1;
+  return count;
+}
+
+function selectRunPayload(payload, type) {
+  if (!payload || typeof payload !== 'object') return payload;
+  switch (type) {
+    case 'trace':
+      return Array.isArray(payload.trace) ? payload.trace : [];
+    case 'heap':
+      return {
+        bindings: payload.bindings ?? [],
+        result: payload.result ?? null,
+        envTypes: payload.envTypes ?? []
+      };
+    case 'diagnostics':
+      return payload.diagnostics ?? {};
+    case 'reads':
+      return payload.reads ?? [];
+    case 'instructions':
+      return payload.instructions ?? [];
+    case 'full':
+    default:
+      return payload;
+  }
+}
+
+function applyPagination(payload, offsetRaw, limitRaw) {
+  if (!Array.isArray(payload)) {
+    return { data: payload, page: null };
+  }
+  const offset = Number.isFinite(offsetRaw) && offsetRaw > 0 ? Math.floor(offsetRaw) : 0;
+  const limit = Number.isFinite(limitRaw) && limitRaw > 0 ? Math.floor(limitRaw) : null;
+  const end = limit ? Math.min(payload.length, offset + limit) : payload.length;
+  const data = payload.slice(offset, end);
+  const page = {
+    total: payload.length,
+    offset,
+    limit,
+    remaining: Math.max(0, payload.length - end)
+  };
+  return { data, page };
+}
+
+function parseOptionalInt(value) {
+  if (value === undefined) return undefined;
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) return undefined;
+  return numeric;
+}
+
+function parseArtifactInput(value) {
+  if (!value || typeof value !== 'object') {
+    throw createBadRequest('artifact payload is required.');
+  }
+  return value;
+}
+
+function streamNdjson(res, meta, data) {
+  res.setHeader('Content-Type', 'application/x-ndjson');
+  res.write(`${JSON.stringify({ meta })}\n`);
+  if (Array.isArray(data)) {
+    data.forEach((item, index) => {
+      res.write(`${JSON.stringify({ index: index + (meta?.page?.offset || 0), data: item })}\n`);
+    });
+  } else if (data && typeof data === 'object') {
+    Object.entries(data).forEach(([key, value]) => {
+      res.write(`${JSON.stringify({ key, data: value })}\n`);
+    });
+  } else if (data !== undefined) {
+    res.write(`${JSON.stringify({ data })}\n`);
+  }
+  res.write(`${JSON.stringify({ done: true })}\n`);
+  res.end();
+}
+
 function ensureString(value, label) {
   if (typeof value !== 'string' || !value.trim()) {
     throw createBadRequest(`${label} must be a non-empty string.`);
@@ -449,6 +667,21 @@ function parseUStateInput(payload, vm, label) {
   const dimension = payload.dimension === undefined ? 0 : parseDimension(payload.dimension, `${label}.dimension`);
   const required = Math.max(amplitudes.length, dimension, 1);
   if (required > vm.M) vm.ensureMicrostates(required);
+  const arr = new Array(vm.M);
+  for (let i = 0; i < vm.M; i += 1) {
+    const amp = amplitudes[i] ?? { real: 0, imag: 0 };
+    const real = Number(amp.real ?? 0);
+    const imag = Number(amp.imag ?? 0);
+    if (!Number.isFinite(real) || !Number.isFinite(imag)) {
+      throw createBadRequest(`${label} amplitudes must contain finite numbers.`);
+    }
+    const data = vm.makeScalarValue(real, imag).data;
+    arr[i] = { real: data.real, imag: data.imag };
+  }
+  const ref = vm.allocateUState(arr);
+  vm.normalizeState(ref);
+  return { kind: 'ustate', ref };
+}
 
 function parseUValueArray(payload, vm, label) {
   if (!Array.isArray(payload) || !payload.length) {
@@ -481,21 +714,6 @@ function parseScalarArray(payload, vm, label, options = {}) {
 
 function makeTupleValue(items) {
   return { kind: 'tuple', items };
-}
-  const arr = new Array(vm.M);
-  for (let i = 0; i < vm.M; i += 1) {
-    const amp = amplitudes[i] ?? { real: 0, imag: 0 };
-    const real = Number(amp.real ?? 0);
-    const imag = Number(amp.imag ?? 0);
-    if (!Number.isFinite(real) || !Number.isFinite(imag)) {
-      throw createBadRequest(`${label} amplitudes must contain finite numbers.`);
-    }
-    const data = vm.makeScalarValue(real, imag).data;
-    arr[i] = { real: data.real, imag: data.imag };
-  }
-  const ref = vm.allocateUState(arr);
-  vm.normalizeState(ref);
-  return { kind: 'ustate', ref };
 }
 
 function parseScalarOrUValueInput(payload, vm, label) {

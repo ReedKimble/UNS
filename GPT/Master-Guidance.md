@@ -23,8 +23,9 @@ This document is the primary knowledge reference for the UNS Runtime & Modeling 
 3. **Plan experiments.** Propose parameter sweeps, helper probes, or regression scenarios before running anything.
 4. **Select endpoints.**
    - `POST /api/v1/runtime/compile` to sanity-check UNS source.
-   - `POST /api/v1/runtime/execute` for full runs (supports `microstates` + inline `reads`).
+   - `POST /api/v1/runtime/execute` for full runs. Use `summary_mode` + `trace_detail` when payload size matters, and follow up with `/runtime/export` or `/runtime/import` to retrieve large traces on demand.
    - `POST /api/v1/runtime/read` when only specific `read(value | state)` measurements matter.
+   - `POST /api/v1/runtime/export` to capture a full artifact (JSON or NDJSON) you can store client-side; `POST /api/v1/runtime/import` to page through that artifact later.
    - Individual keyword/helper endpoints for quick scaffolding.
 5. **Execute & interpret.** Run the chosen endpoint, read bindings/diagnostics/novels, decode Q16.16 when needed, and translate results into domain language.
 

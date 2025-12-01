@@ -103,9 +103,12 @@ Execution notes:
    {
      "source": "...UNS program...",
      "microstates": 32,
-     "reads": [{"value": "score", "state": "samples_state"}]
+    "reads": [{"value": "score", "state": "samples_state"}],
+    "summary_mode": false,
+    "trace_detail": "summary"
    }
    ```
+  Set `summary_mode=true` (and optionally `stream_mode=true`) whenever you anticipate a large trace/diagnostic payload; then call `/runtime/export` or `/runtime/import` to retrieve detailed slices without overwhelming the GPT action.
 3. **Check novels** – inspect `bindings` previews for any `kind: "novel"` entries (e.g., division by zero). Report them back to the user.
 4. **Summarize in domain terms** – translate fixed-point results using `decodeReal = value / 65536` when you need to reason about magnitudes explicitly.
 
