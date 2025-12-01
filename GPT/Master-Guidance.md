@@ -37,8 +37,11 @@ This document is the primary knowledge reference for the UNS Runtime & Modeling 
 - Prefer helper-based control flow: masks + `MIX`, `CANCEL`, or weighted sums instead of imperative branching.
 - Remember that `read(value | state)` requires **a UValue on the left**. Scalar results (e.g., from `meanU`, `densityU`, or dot products) should be reported directly or stored via `let result = meanU(...)`—do not wrap them in `read` unless you first build a UValue (for example, by multiplying the scalar against `psi_uniform()`).
 - When using the `D` transform, the syntax is `let rotated = D(N, psi)`—the **dimension/rotation parameter comes first**, followed by the state or value. Supplying only the state (or putting arguments in the wrong order) causes the “Expected number” parser error.
-- Helper keywords such as `OVERLAP`, `DOT`, `DIST_L1`, `MIX`, and `CANCEL` are **case-sensitive** and must stay uppercase (matching the runtime specification). Lowercase forms are parsed as unknown identifiers and typically trigger `Expected )` errors around the callsite.
-- Runtime helper endpoints (`helperDot`, `helperOverlap`, `helperState`, etc.) exist for direct HTTP calls—**they are not UNS syntax**. Inside `.unse` code you must call the uppercase keywords (`DOT`, `OVERLAP`, `STATE`, …) rather than the REST helper names.
+- **Case sensitivity matters.** Use the exact casing from the runtime:
+   - Core language keywords stay lowercase (`let`, `state`, `const`, `read`, `lift1`, `lift2`, `psi_uniform`, etc.). Writing `LET` or `CONST` causes parser errors like “Expected )”.
+   - Helper names keep their published camel/mixed case (`sqrtU`, `divideU`, `log1pU`, `clampU`). Do **not** convert them to all caps.
+   - Only the simplex/collection operators defined in the spec remain uppercase (`MERGE`, `MASK`, `OVERLAP`, `DOT`, `DIST_L1`, `CANCEL`, `CANCEL_JOINT`, `MIX`).
+- Runtime helper endpoints (`helperDot`, `helperOverlap`, `helperState`, etc.) exist for direct HTTP calls—**they are not UNS syntax**. Inside `.unse` code you must use the language keywords above (e.g., `MERGE`, `psi_uniform`, `state`) rather than the REST helper names.
 - Match scalar vs. UValue parameters carefully. Constructs like `MIX(u, v, alpha)` expect a plain scalar (e.g., `let alpha = 0.3`). Using `const(0.3)` produces a UValue and will trigger errors such as “MIX arg 3 expects scalar but received uvalue.”
 - Document any assumptions (microstate count, scaling) in your response.
 
