@@ -4,7 +4,7 @@ const SCALE = 65536;
 const DEFAULT_MICROSTATES = 512;
 const MAX_MICROSTATES = 32768;
 
-const KEYWORDS = new Set(['let', 'state', 'const', 'read', 'lift1', 'lift2', 'D', 'true', 'false']);
+const KEYWORDS = new Set(['let', 'state', 'const', 'read', 'lift1', 'lift2', 'D', 'tuple', 'true', 'false']);
 const RESERVED = new Set(['novel', 'uvalue', 'ustate', 'scalar', 'fn', 'type']);
 
 const HELPER_SPECS = {
@@ -150,7 +150,7 @@ function reshapeHelperArgs(canonicalName, rawName, args) {
   const prefix = args.slice(0, index);
   const elements = args.slice(index);
   if (!elements.length) return args;
-  const tupleLiteral = { type: 'TupleLiteral', elements };
+  const tupleLiteral = { type: 'TupleLiteral', items: elements };
   return [...prefix, tupleLiteral];
 }
 
@@ -838,6 +838,7 @@ class Parser {
     if (this.match('keyword', 'lift2')) return this.parseLift2();
     if (this.match('keyword', 'const')) return this.parseConst();
     if (this.match('keyword', 'D')) return this.parseD();
+    if (this.match('keyword', 'tuple')) return this.parseTupleLiteral();
     if (this.match('keyword', 'true')) return { type: 'ScalarLiteral', value: { re: 1, im: 0 } };
     if (this.match('keyword', 'false')) return { type: 'ScalarLiteral', value: { re: 0, im: 0 } };
 
@@ -882,17 +883,6 @@ class Parser {
     ) {
       this.pos += 1;
       return this.parseAssemble();
-    }
-
-    if (this.match('punct', '{')) {
-      const items = [];
-      if (!this.match('punct', '}')) {
-        do {
-          items.push(this.parseExpr());
-        } while (this.match('punct', ','));
-        this.expect('punct', '}');
-      }
-      return { type: 'TupleLiteral', items };
     }
 
     const helperCandidate = this.current();
@@ -980,6 +970,19 @@ class Parser {
     }
     const normalizedArgs = reshapeHelperArgs(name, rawName, args);
     return { type: 'HelperCall', name, args: normalizedArgs };
+  }
+
+  parseTupleLiteral() {
+    this.expect('punct', '{');
+    const items = [];
+    if (!this.match('punct', '}')) {
+      do {
+        items.push(this.parseExpr());
+      } while (this.match('punct', ','));
+      this.expect('punct', '}');
+    }
+    if (!items.length) throw new Error('tuple literal requires at least one element');
+    return { type: 'TupleLiteral', items };
   }
 
   parseUValueOf() {

@@ -1113,7 +1113,7 @@
   <script>
     (() => {
       const SCALE = 65536;
-      const KEYWORD_LOOKUP = buildCaseLookup(["let", "state", "const", "read", "lift1", "lift2", "D", "true", "false"]);
+      const KEYWORD_LOOKUP = buildCaseLookup(["let", "state", "const", "read", "lift1", "lift2", "D", "tuple", "true", "false"]);
       const RESERVED_LOOKUP = buildCaseLookup(["novel", "uvalue", "ustate", "scalar", "fn", "type"]);
       const SPECIAL_IDENTIFIERS = new Set(['uvalue_of', 'frac']);
       const DOC_EXPANDED_STORAGE_KEY = 'uns.docExplorer.expanded';
@@ -1272,7 +1272,7 @@
         const prefix = args.slice(0, index);
         const elements = args.slice(index);
         if (!elements.length) return args;
-        const tupleLiteral = { type: 'TupleLiteral', elements };
+        const tupleLiteral = { type: 'TupleLiteral', items: elements };
         return [...prefix, tupleLiteral];
       }
       const describeTypeName = (value) => {
@@ -3750,6 +3750,7 @@ printU(unstable)`
           if (this.match('keyword', 'lift2')) return this.parseLift2();
           if (this.match('keyword', 'const')) return this.parseConst();
           if (this.match('keyword', 'D')) return this.parseD();
+          if (this.match('keyword', 'tuple')) return this.parseTupleLiteral();
           if (this.match('keyword', 'true')) return { type: 'ScalarLiteral', value: { re: 1, im: 0 } };
           if (this.match('keyword', 'false')) return { type: 'ScalarLiteral', value: { re: 0, im: 0 } };
 
@@ -3882,6 +3883,19 @@ printU(unstable)`
           }
           const normalizedArgs = reshapeHelperArgs(name, rawName, args);
           return { type: 'HelperCall', name, args: normalizedArgs };
+        }
+
+        parseTupleLiteral() {
+          this.expect('punct', '{');
+          const items = [];
+          if (!this.match('punct', '}')) {
+            do {
+              items.push(this.parseExpr());
+            } while (this.match('punct', ','));
+            this.expect('punct', '}');
+          }
+          if (!items.length) throw new Error('tuple literal requires at least one element');
+          return { type: 'TupleLiteral', items };
         }
 
         parseUValueOf() {
@@ -4161,10 +4175,10 @@ printU(unstable)`
               return 'uvalue';
             }
             case 'TupleLiteral': {
-              const elements = Array.isArray(node.elements) ? node.elements : [];
-              if (!elements.length) throw new Error('Tuple literal requires at least one element');
-              const elementTypes = elements.map((element) => this.emitExpr(element));
-              this.emit('BUILD_TUPLE', elements.length);
+              const items = Array.isArray(node.items) ? node.items : [];
+              if (!items.length) throw new Error('tuple literal requires at least one element');
+              const elementTypes = items.map((element) => this.emitExpr(element));
+              this.emit('BUILD_TUPLE', items.length);
               return tupleType(elementTypes);
             }
             case 'HelperCall': {

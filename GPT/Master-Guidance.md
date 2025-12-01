@@ -32,16 +32,13 @@ This document is the primary knowledge reference for the UNS Runtime & Modeling 
 
 ## 4. Writing Valid UNS Programs
 
-- Follow the grammar from `UNS_Guided_Discovery.md` and `UNS_Runtime32_Spec.md`—no stray semicolons, no bare arithmetic operators. Use `+u`, `*u`, `*s`, `divU`, etc.
-- Always declare states explicitly (`state psi = psi_uniform()` or `state psi = state(value)`), especially before `read` or helper calls such as `meanU(u, psi)`.
-- Prefer helper-based control flow: masks + `MIX`, `CANCEL`, or weighted sums instead of imperative branching.
-- Remember that `read(value | state)` requires **a UValue on the left**. Scalar results (e.g., from `meanU`, `densityU`, or dot products) should be reported directly or stored via `let result = meanU(...)`—do not wrap them in `read` unless you first build a UValue (for example, by multiplying the scalar against `psi_uniform()`).
-- When using the `D` transform, the syntax is `let rotated = D(N, psi)`—the **dimension/rotation parameter comes first**, followed by the state or value. Supplying only the state (or putting arguments in the wrong order) causes the “Expected number” parser error.
-- **Case sensitivity matters.** Use the exact casing from the runtime:
    - Core language keywords stay lowercase (`let`, `state`, `const`, `read`, `lift1`, `lift2`, `psi_uniform`, etc.). Writing `LET` or `CONST` causes parser errors like “Expected )”.
-   - Helper names keep their published camel/mixed case (`sqrtU`, `divideU`, `log1pU`, `clampU`). Do **not** convert them to all caps.
+   - Helper names keep their published camel/mixed case (`sqrtU`, `divU`, `log1pU`, `clampU`). Do **not** convert them to all caps.
    - Only the simplex/collection operators defined in the spec remain uppercase (`MERGE`, `MASK`, `OVERLAP`, `DOT`, `DIST_L1`, `CANCEL`, `CANCEL_JOINT`, `MIX`).
-- Runtime helper endpoints (`helperDot`, `helperOverlap`, `helperState`, etc.) exist for direct HTTP calls—**they are not UNS syntax**. Inside `.unse` code you must use the language keywords above (e.g., `MERGE`, `psi_uniform`, `state`) rather than the REST helper names.
+   - Parser is intentionally minimal: avoid stacked parentheses (`(( … ))`) and reserve curly braces for the constructs that require them (`tuple{…}`, `assemble{…}`, `uvalue_of({ … })`).
+- **Exponentials:** There is no built-in `exp` unary lift. Compose exponentials with `powU(const(2.718281828), value)` (or a higher-precision `const`) whenever you need \(e^x\).
+- **Tuple construction & MERGE:** Use `tuple{value1, value2, …}` whenever a helper expects a tuple (`MERGE`, `PROJECT`, destructuring). Call out the element ordering and remember tuples must contain at least one element.
+- **CANCEL outputs:** `CANCEL` and `CANCEL_JOINT` both return tuples. Immediately destructure with `let (left, right) = CANCEL(...)` before feeding either branch into other helpers; passing the tuple directly to scalar helpers causes “expects single value but received tuple” errors.
 - Match scalar vs. UValue parameters carefully. Constructs like `MIX(u, v, alpha)` expect a plain scalar (e.g., `let alpha = 0.3`). Using `const(0.3)` produces a UValue and will trigger errors such as “MIX arg 3 expects scalar but received uvalue.”
 - Document any assumptions (microstate count, scaling) in your response.
 
