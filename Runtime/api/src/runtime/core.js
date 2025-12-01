@@ -55,12 +55,86 @@ const HELPER_SPECS = {
   printU: { returnType: 'void', required: ['uvalue'], optional: [] },
   plotU: { returnType: 'void', required: ['uvalue'], optional: [] }
 };
+const EXPLICIT_HELPER_ALIASES = {
+  helperUniformState: 'uniform_state',
+  helperPsiUniform: 'psi_uniform',
+  helperDeltaState: 'delta_state',
+  helperState: 'state',
+  helperStateFromMask: 'state_from_mask',
+  helperStateRange: 'state_range',
+  helperMaskRange: 'mask_range',
+  helperMaskThreshold: 'mask_threshold',
+  helperMaskLessThan: 'mask_lt',
+  helperMaskGreaterThan: 'mask_gt',
+  helperMaskEqual: 'mask_eq',
+  helperNorm: 'NORM',
+  helperMerge: 'MERGE',
+  helperMaskSimplex: 'MASK',
+  helperProject: 'PROJECT',
+  helperOverlap: 'OVERLAP',
+  helperDot: 'DOT',
+  helperDistL1: 'DIST_L1',
+  helperCollection: 'collection',
+  helperInject: 'inject',
+  helperCancel: 'CANCEL',
+  helperCancelJoint: 'CANCEL_JOINT',
+  helperMix: 'MIX'
+};
+const HELPER_ALIAS_LOOKUP = buildHelperAliasLookup(Object.keys(HELPER_SPECS), EXPLICIT_HELPER_ALIASES);
+const HELPER_ALIAS_TUPLE_SPREAD = new Map([
+  ['helpermerge', { canonical: 'MERGE', tupleIndex: 0 }],
+  ['helperproject', { canonical: 'PROJECT', tupleIndex: 1 }]
+]);
 
 const PRECEDENCE = { '+u': 1, '*u': 2, '*s': 2 };
-const HELPER_CALLS = new Set([...Object.keys(HELPER_SPECS), 'uvalue_of', 'frac']);
 
 const tupleType = (elements) => ({ kind: 'tuple', elements: Array.isArray(elements) ? [...elements] : [] });
 const isTupleType = (value) => Boolean(value && typeof value === 'object' && value.kind === 'tuple');
+
+function toPascalCase(value) {
+  if (!value) return '';
+  return value
+    .split(/[^A-Za-z0-9]+/)
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
+    .join('');
+}
+
+function buildHelperAliasLookup(names, explicitAliases = {}) {
+  const map = new Map();
+  const register = (alias, canonical) => {
+    if (!alias || !canonical) return;
+    map.set(alias.toLowerCase(), canonical);
+  };
+  names.forEach((name) => {
+    register(name, name);
+    register(`helper${toPascalCase(name)}`, name);
+    register(`helper_${name}`, name);
+    register(`helper${name}`, name);
+    register(name.replace(/[^A-Za-z0-9]/g, ''), name);
+  });
+  Object.entries(explicitAliases).forEach(([alias, canonical]) => register(alias, canonical));
+  return map;
+}
+
+function canonicalHelperName(name) {
+  if (typeof name !== 'string') return null;
+  return HELPER_ALIAS_LOOKUP.get(name.toLowerCase()) ?? null;
+}
+
+function reshapeHelperArgs(canonicalName, rawName, args) {
+  if (!rawName) return args;
+  const config = HELPER_ALIAS_TUPLE_SPREAD.get(rawName.toLowerCase());
+  if (!config) return args;
+  if (config.canonical && config.canonical !== canonicalName) return args;
+  const index = Math.max(0, config.tupleIndex ?? 0);
+  if (index >= args.length) return args;
+  const prefix = args.slice(0, index);
+  const elements = args.slice(index);
+  if (!elements.length) return args;
+  const tupleLiteral = { type: 'TupleLiteral', elements };
+  return [...prefix, tupleLiteral];
+}
 
 function describeTypeName(value) {
   if (typeof value === 'string') return value;
@@ -742,14 +816,15 @@ class Parser {
 
     const keywordHelper = this.current();
     const keywordLookahead = this.tokens[this.pos + 1];
+    const keywordHelperName = canonicalHelperName(keywordHelper?.value);
     if (
       keywordHelper?.type === 'keyword' &&
-      HELPER_CALLS.has(keywordHelper.value) &&
+      keywordHelperName &&
       keywordLookahead?.type === 'punct' &&
       keywordLookahead.value === '('
     ) {
       this.pos += 1;
-      return this.parseHelperCall(keywordHelper.value);
+      return this.parseHelperCall(keywordHelperName, keywordHelper.value);
     }
 
     const special = this.current();
@@ -794,14 +869,15 @@ class Parser {
     }
 
     const helperCandidate = this.current();
+    const helperName = canonicalHelperName(helperCandidate?.value);
     if (
       helperCandidate?.type === 'identifier' &&
-      HELPER_CALLS.has(helperCandidate.value) &&
+      helperName &&
       lookahead?.type === 'punct' &&
       lookahead.value === '('
     ) {
       this.pos += 1;
-      return this.parseHelperCall(helperCandidate.value);
+      return this.parseHelperCall(helperName, helperCandidate.value);
     }
 
     if (this.match('punct', '(')) {
@@ -866,7 +942,7 @@ class Parser {
     return { type: 'DTransform', dimension, stateExpr };
   }
 
-  parseHelperCall(name) {
+  parseHelperCall(name, rawName = null) {
     this.expect('punct', '(');
     const args = [];
     if (!this.match('punct', ')')) {
@@ -875,7 +951,8 @@ class Parser {
       } while (this.match('punct', ','));
       this.expect('punct', ')');
     }
-    return { type: 'HelperCall', name, args };
+    const normalizedArgs = reshapeHelperArgs(name, rawName, args);
+    return { type: 'HelperCall', name, args: normalizedArgs };
   }
 
   parseUValueOf() {
