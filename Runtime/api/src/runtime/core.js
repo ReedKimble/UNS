@@ -31,6 +31,7 @@ const HELPER_SPECS = {
   CANCEL: { returnTuple: ['uvalue', 'uvalue'], required: ['uvalue', 'uvalue'], optional: [] },
   CANCEL_JOINT: { returnType: 'uvalue', required: ['uvalue', 'uvalue'], optional: [] },
   MIX: { returnType: 'uvalue', required: ['uvalue', 'uvalue', 'scalar'], optional: [] },
+  invokeDKeyword: { returnType: 'ustate', required: ['scalar', 'stateLike'], optional: [] },
   meanU: { returnType: 'scalar', required: ['uvalue'], optional: ['stateLike'] },
   sumU: { returnType: 'scalar', required: ['uvalue'], optional: ['stateLike'] },
   integralU: { returnType: 'scalar', required: ['uvalue'], optional: ['stateLike'] },
@@ -958,7 +959,10 @@ class Compiler {
   coerceHelperArg(type, expected, helperName, index) {
     if (!expected) return type;
     const label = `${helperName} arg ${index + 1}`;
-    if (expected === 'uvalue') return this.ensureUValueType(type, label);
+    if (expected === 'uvalue') {
+      if (type === 'ustate') return 'uvalue';
+      return this.ensureUValueType(type, label);
+    }
     if (expected === 'scalar') return this.ensureScalarType(type, label);
     if (expected === 'scalarOrUValue') {
       if (type === 'scalar' || type === 'uvalue') return type;
@@ -1241,7 +1245,11 @@ class VirtualMachine {
 
   cloneValue(value) {
     if (!value) return value;
-    if (value.kind === 'scalar') return { kind: 'scalar', data: cloneComplex(value.data) };
+    if (value.kind === 'scalar') {
+      const clone = { kind: 'scalar', data: cloneComplex(value.data) };
+      if (value.novelId != null) clone.novelId = value.novelId;
+      return clone;
+    }
     if (value.kind === 'tuple') {
       return { kind: 'tuple', items: value.items.map((item) => this.cloneValue(item)) };
     }
@@ -1346,9 +1354,20 @@ class VirtualMachine {
     return { kind: 'ustate', ref };
   }
 
+  stateToUValue(value, helperName = 'state') {
+    if (!value || value.kind !== 'ustate') throw new Error(`${helperName} expects a state input`);
+    const state = this.heap.states[value.ref];
+    if (!Array.isArray(state)) throw new Error(`${helperName} references an unknown state`);
+    const arr = state.map(cloneComplex);
+    const ref = this.allocateUValue(arr);
+    return { kind: 'uvalue', ref };
+  }
+
   ensureUValueArg(value, helperName) {
-    if (!value || value.kind !== 'uvalue') throw new Error(`${helperName} expects a UValue argument`);
-    return value;
+    if (!value) throw new Error(`${helperName} expects a UValue argument`);
+    if (value.kind === 'uvalue') return value;
+    if (value.kind === 'ustate') return this.stateToUValue(value, helperName);
+    throw new Error(`${helperName} expects a UValue argument`);
   }
 
   ensureTupleArg(value, label, { allowEmpty = false } = {}) {
@@ -1403,6 +1422,9 @@ class VirtualMachine {
 
   scalarToFloat(value, label) {
     if (!value || value.kind !== 'scalar') throw new Error(`${label} expects a scalar`);
+    if (value.novelId != null) {
+      throw new Error(`${label} cannot be derived from a novel value`);
+    }
     return decodeReal(value.data.real);
   }
 
@@ -1466,40 +1488,67 @@ class VirtualMachine {
     let accRe = 0;
     let accIm = 0;
     let weightSum = 0;
+    let novelId = null;
     for (let i = 0; i < this.M; i += 1) {
-      const psi2Word = magnitudeSquared(state[i]);
+      const psiEntry = state[i];
+      if (psiEntry?.novelId) {
+        novelId = psiEntry.novelId;
+        break;
+      }
+      const psi2Word = magnitudeSquared(psiEntry);
       const weight = decodeReal(psi2Word);
       weightSum += weight;
       const sample = values[i];
-      if (sample?.novelId) continue;
+      if (sample?.novelId) {
+        novelId = sample.novelId;
+        break;
+      }
       accRe += decodeReal(sample.real) * weight;
       accIm += decodeReal(sample.imag) * weight;
     }
+    if (novelId != null) {
+      return { re: 0, im: 0, weight: 0, novelId };
+    }
     const safeWeight = weightSum || 1;
-    return { re: accRe / safeWeight, im: accIm / safeWeight, weight: safeWeight };
+    return { re: accRe / safeWeight, im: accIm / safeWeight, weight: safeWeight, novelId: null };
   }
 
   computeVariance(uvalueRef, stateRef, mean) {
     const values = this.heap.values[uvalueRef];
     const state = this.heap.states[stateRef];
     if (!values || !state) throw new Error('Invalid references for variance');
+    if (mean?.novelId != null) {
+      return { value: 0, novelId: mean.novelId };
+    }
     this.assertDimension(values, 'UValue');
     this.assertDimension(state, 'UState');
     let acc = 0;
     let weightSum = 0;
+    let novelId = null;
     for (let i = 0; i < this.M; i += 1) {
-      const psi2Word = magnitudeSquared(state[i]);
+      const psiEntry = state[i];
+      if (psiEntry?.novelId) {
+        novelId = psiEntry.novelId;
+        break;
+      }
+      const psi2Word = magnitudeSquared(psiEntry);
       const weight = decodeReal(psi2Word);
       weightSum += weight;
       const sample = values[i];
-      if (sample?.novelId) continue;
+      if (sample?.novelId) {
+        novelId = sample.novelId;
+        break;
+      }
       const diffRe = decodeReal(sample.real) - mean.re;
       const diffIm = decodeReal(sample.imag) - mean.im;
       const mag2 = diffRe * diffRe + diffIm * diffIm;
       acc += mag2 * weight;
     }
+    if (novelId != null) {
+      return { value: 0, novelId };
+    }
     const safeWeight = weightSum || 1;
-    return acc / safeWeight;
+    return { value: acc / safeWeight, novelId: null };
   }
 
   computeDensity(uvalueRef, stateRef) {
@@ -1510,26 +1559,40 @@ class VirtualMachine {
     this.assertDimension(state, 'UState');
     let acc = 0;
     let weightSum = 0;
+    let novelId = null;
     for (let i = 0; i < this.M; i += 1) {
-      const psi2Word = magnitudeSquared(state[i]);
+      const psiEntry = state[i];
+      if (psiEntry?.novelId) {
+        novelId = psiEntry.novelId;
+        break;
+      }
+      const psi2Word = magnitudeSquared(psiEntry);
       const weight = decodeReal(psi2Word);
       weightSum += weight;
       const sample = mask[i];
-      if (sample?.novelId) continue;
+      if (sample?.novelId) {
+        novelId = sample.novelId;
+        break;
+      }
       const value = Math.max(0, Math.min(1, decodeReal(sample.real)));
       acc += value * weight;
     }
+    if (novelId != null) {
+      return { value: 0, novelId };
+    }
     const safeWeight = weightSum || 1;
-    return acc / safeWeight;
+    return { value: acc / safeWeight, novelId: null };
   }
 
-  makeScalarValue(real, imag = 0) {
+  makeScalarValue(real, imag = 0, novelId = null) {
     const safeReal = Number.isFinite(real) ? real : 0;
     const safeImag = Number.isFinite(imag) ? imag : 0;
-    return {
+    const scalar = {
       kind: 'scalar',
       data: { real: encodeReal(safeReal), imag: encodeReal(safeImag) }
     };
+    if (novelId != null) scalar.novelId = novelId;
+    return scalar;
   }
 
   sampleUValueAt(uvalueRef, index) {
@@ -1587,7 +1650,11 @@ class VirtualMachine {
 
   coerceScalarLike(value, label) {
     if (!value) throw new Error(`${label} expects scalar or UValue`);
-    if (value.kind === 'scalar') return cloneComplex(value.data);
+    if (value.kind === 'scalar') {
+      const sample = cloneComplex(value.data);
+      if (value.novelId != null) sample.novelId = value.novelId;
+      return sample;
+    }
     if (value.kind === 'uvalue') return cloneComplex(this.sampleUValueAt(value.ref, 0));
     throw new Error(`${label} expects scalar or UValue`);
   }
@@ -1695,11 +1762,24 @@ class VirtualMachine {
     this.assertDimension(psi, 'UState');
     let accReal = 0;
     let accImag = 0;
+    let novelId = null;
     for (let i = 0; i < this.M; i += 1) {
-      const psi2 = magnitudeSquared(psi[i]);
-      if (f[i]?.novelId) continue;
-      accReal = addQ16(accReal, mulQ16(f[i].real, psi2));
-      accImag = addQ16(accImag, mulQ16(f[i].imag, psi2));
+      const psiEntry = psi[i];
+      if (psiEntry?.novelId) {
+        novelId = psiEntry.novelId;
+        break;
+      }
+      const psi2 = magnitudeSquared(psiEntry);
+      const sample = f[i];
+      if (sample?.novelId) {
+        novelId = sample.novelId;
+        break;
+      }
+      accReal = addQ16(accReal, mulQ16(sample.real, psi2));
+      accImag = addQ16(accImag, mulQ16(sample.imag, psi2));
+    }
+    if (novelId != null) {
+      return { real: 0, imag: 0, novelId };
     }
     return { real: accReal, imag: accImag };
   }
@@ -1713,7 +1793,9 @@ class VirtualMachine {
     for (let i = 0; i < this.M; i += 1) {
       const psi2 = decodeReal(magnitudeSquared(psi[i]));
       const sample = values[i];
-      if (sample?.novelId) continue;
+      if (sample?.novelId) {
+        return this.makeScalarValue(0, 0, sample.novelId);
+      }
       const mag = Math.sqrt(Math.max(0, decodeReal(magnitudeSquared(sample))));
       acc += mag * psi2;
     }
@@ -1787,6 +1869,7 @@ class VirtualMachine {
       case 'mask_eq':
         return this.applyBinaryLiftHelper('eq', args[0], args[1], 'mask_eq');
       case 'collection':
+        return this.buildCollection(args);
       case 'NORM': {
         const value = this.ensureUValueArg(args[0], 'NORM');
         const normalized = UNSOperators.NORM(this.extractNonnegativeVector(value.ref));
@@ -1830,7 +1913,6 @@ class VirtualMachine {
         const distance = UNSOperators.DIST_L1(this.extractSimplexVector(u.ref), this.extractSimplexVector(v.ref));
         return this.makeScalarValue(distance, 0);
       }
-        return this.buildCollection(args);
       case 'inject':
         return this.buildInjection(args[0], args[1], args[2]);
       case 'absU':
@@ -1918,16 +2000,26 @@ class VirtualMachine {
         const ref = this.allocateUValue(out);
         return { kind: 'uvalue', ref };
       }
+      case 'invokeDKeyword': {
+        if (args.length < 2) {
+          throw new Error('invokeDKeyword expects (dimension, state) arguments');
+        }
+        const dimension = this.scalarToFloat(args[0], 'invokeDKeyword dimension');
+        const state = this.resolveStateValue(args[1]);
+        return this.applyDTransform(state, dimension);
+      }
       case 'meanU': {
         const value = this.ensureUValueArg(args[0], 'meanU');
         const state = args[1] ? this.resolveStateValue(args[1]) : this.makeUniformStateValue();
         const data = this.performRead(value.ref, state.ref);
+        if (data.novelId != null) return this.makeScalarValue(0, 0, data.novelId);
         return { kind: 'scalar', data };
       }
       case 'sumU': {
         const value = this.ensureUValueArg(args[0], 'sumU');
         const state = args[1] ? this.resolveStateValue(args[1]) : this.makeUniformStateValue();
         const data = this.performRead(value.ref, state.ref);
+        if (data.novelId != null) return this.makeScalarValue(0, 0, data.novelId);
         const { re, im } = complexToFloat(data);
         return this.makeScalarValue(re * this.M, im * this.M);
       }
@@ -1935,47 +2027,57 @@ class VirtualMachine {
         const value = this.ensureUValueArg(args[0], 'integralU');
         const state = args[1] ? this.resolveStateValue(args[1]) : this.makeUniformStateValue();
         const mean = this.computeExpectation(value.ref, state.ref);
+        if (mean.novelId != null) return this.makeScalarValue(0, 0, mean.novelId);
         return this.makeScalarValue(mean.re * this.M, mean.im * this.M);
       }
       case 'varianceU': {
         const value = this.ensureUValueArg(args[0], 'varianceU');
         const state = args[1] ? this.resolveStateValue(args[1]) : this.makeUniformStateValue();
         const mean = this.computeExpectation(value.ref, state.ref);
+        if (mean.novelId != null) return this.makeScalarValue(0, 0, mean.novelId);
         const variance = this.computeVariance(value.ref, state.ref, mean);
-        return this.makeScalarValue(variance, 0);
+        if (variance.novelId != null) return this.makeScalarValue(0, 0, variance.novelId);
+        return this.makeScalarValue(variance.value, 0);
       }
       case 'stddevU':
       case 'stdU': {
         const value = this.ensureUValueArg(args[0], name);
         const state = args[1] ? this.resolveStateValue(args[1]) : this.makeUniformStateValue();
         const mean = this.computeExpectation(value.ref, state.ref);
+        if (mean.novelId != null) return this.makeScalarValue(0, 0, mean.novelId);
         const variance = this.computeVariance(value.ref, state.ref, mean);
-        return this.makeScalarValue(Math.sqrt(Math.max(0, variance)), 0);
+        if (variance.novelId != null) return this.makeScalarValue(0, 0, variance.novelId);
+        return this.makeScalarValue(Math.sqrt(Math.max(0, variance.value)), 0);
       }
       case 'densityU': {
         const mask = this.ensureUValueArg(args[0], 'densityU');
         const state = args[1] ? this.resolveStateValue(args[1]) : this.makeUniformStateValue();
         const density = this.computeDensity(mask.ref, state.ref);
-        return this.makeScalarValue(Math.max(0, Math.min(1, density)), 0);
+        if (density.novelId != null) return this.makeScalarValue(0, 0, density.novelId);
+        return this.makeScalarValue(Math.max(0, Math.min(1, density.value)), 0);
       }
       case 'integrate': {
         const value = this.ensureUValueArg(args[0], 'integrate');
         const state = this.resolveStateValue(args[1]);
         const data = this.performRead(value.ref, state.ref);
+        if (data.novelId != null) return this.makeScalarValue(0, 0, data.novelId);
         return { kind: 'scalar', data };
       }
       case 'mean': {
         const value = this.ensureUValueArg(args[0], 'mean');
         const state = this.makeUniformStateValue();
         const data = this.performRead(value.ref, state.ref);
+        if (data.novelId != null) return this.makeScalarValue(0, 0, data.novelId);
         return { kind: 'scalar', data };
       }
       case 'variance': {
         const value = this.ensureUValueArg(args[0], 'variance');
         const state = this.resolveStateValue(args[1]);
         const mean = this.computeExpectation(value.ref, state.ref);
+        if (mean.novelId != null) return this.makeScalarValue(0, 0, mean.novelId);
         const variance = this.computeVariance(value.ref, state.ref, mean);
-        return this.makeScalarValue(variance, 0);
+        if (variance.novelId != null) return this.makeScalarValue(0, 0, variance.novelId);
+        return this.makeScalarValue(variance.value, 0);
       }
       case 'smoothness': {
         const value = this.ensureUValueArg(args[0], 'smoothness');
@@ -1989,6 +2091,9 @@ class VirtualMachine {
   describeValue(value) {
     if (!value) return 'void';
     if (value.kind === 'scalar') {
+      if (value.novelId != null) {
+        return `novel#${value.novelId}`;
+      }
       const { re, im } = complexToFloat(value.data);
       return `(${re.toFixed(4)} + ${im.toFixed(4)}i)`;
     }
@@ -2183,7 +2288,9 @@ class VirtualMachine {
             throw new Error('READ expects UValue | UState');
           }
           const data = this.performRead(value.ref, state.ref);
-          this.push({ kind: 'scalar', data });
+          const result = { kind: 'scalar', data };
+          if (data.novelId != null) result.novelId = data.novelId;
+          this.push(result);
           break;
         }
         case 'NORM_STATE': {
@@ -2282,6 +2389,7 @@ class VirtualMachine {
     if (!value || !state) throw new Error('Missing binding');
     if (value.kind !== 'uvalue' || state.kind !== 'ustate') throw new Error('read() requires value + state');
     const data = this.performRead(value.ref, state.ref);
+    if (data.novelId != null) return { novelId: data.novelId };
     return complexToFloat(data);
   }
 }
@@ -2393,12 +2501,14 @@ function serializeValue(vm, value, previewLimit = 32) {
   if (!value) return null;
   const summary = typeof vm.describeValue === 'function' ? vm.describeValue(value) : value.kind;
   if (value.kind === 'scalar') {
-    return {
+    const payload = {
       kind: 'scalar',
       summary,
       real: decodeReal(value.data?.real ?? 0),
       imag: decodeReal(value.data?.imag ?? 0)
     };
+    if (value.novelId != null) payload.novelId = value.novelId;
+    return payload;
   }
   if (value.kind === 'uvalue') {
     return {
@@ -2459,6 +2569,9 @@ function executeSource(source, options = {}) {
           throw new Error('Read entries require string value/state properties');
         }
         const measurement = vm.readNamed(value, state);
+        if (measurement?.novelId != null) {
+          return { value, state, novelId: measurement.novelId };
+        }
         return { value, state, real: measurement.re, imag: measurement.im };
       })
     : [];

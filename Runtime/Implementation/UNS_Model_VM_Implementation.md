@@ -25,6 +25,17 @@ divQ16(a,b) = (a << 16) / b  (b != 0)
 mag2(c) = mulQ16(c.real, c.real) + mulQ16(c.imag, c.imag)
 ```
 
+### Note on the JavaScript engines
+
+Both shipped JS runtimes—`Runtime/api/src/runtime/core.js` (Node/CLI) and `Examples/Web App IDE/uns_runtime_app.html` (browser)—implement the table above by immediately encoding every `Number` back into Q16.16 via `encodeReal`, `clampWord`, and friends. The host language still performs intermediate math in IEEE‑754 double precision, but every observable value is coerced into the 32‑bit fixed-point domain before it touches heap storage or helpers. We keep this pattern for simplicity and portability.
+
+If stronger guarantees are required, two drop-in strategies remain viable:
+
+1. Store microstate buffers inside `Int32Array` (or apply bitwise ops) so each arithmetic step explicitly masks to 32 bits even in JavaScript.
+2. Push the math core into WebAssembly/native code to obtain true single-precision or integer ALU semantics.
+
+Either option would be more “pure” with respect to the spec, but they add complexity without changing the logical model. For now both JS engines stay on the encode/clamp path.
+
 ---
 
 ## 2. Core Data Structures
