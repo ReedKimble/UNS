@@ -351,9 +351,10 @@ UNS:
 let A = const(a)
 let B = const(b)
 
-let F = (A*A) +u (B*B)
+let F = (A *u A) +u (B *u B)
+state psi = psi_uniform()
 
-let h = read( sqrtU(F) | psi.any )
+let h = read(sqrtU(F) | psi)
 ```
 
 ## 13.2 Divide by Zero: Discovery of a New Number
@@ -361,7 +362,7 @@ let h = read( sqrtU(F) | psi.any )
 let A = const(3)
 let B = const(0)
 
-let Q = divideU(A, B)
+let Q = divU(A, B)
 ```
 
 For each microstate `x`:

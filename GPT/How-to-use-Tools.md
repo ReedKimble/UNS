@@ -60,7 +60,8 @@ You have a reduced but sufficient set of endpoints. Choose among them deliberate
   - Good for iterative design: first compile, then execute.
 - **`executeProgram` (`POST /api/v1/runtime/execute`)**
   - This is your **primary workhorse**.
-  - Use when the user wants to run a complete UNS program and see the final result, state, bindings, and trace.
+  - Use when the user wants to run a complete UNS program and see the final result, binding summaries, emitted trace, diagnostics, and any inline `reads` you include.
+  - Accepts optional `microstates` (1–32768) so you can scale experiments without editing the UNS source.
 - **`readMeasurements` (`POST /api/v1/runtime/read`)**
   - Use when the user cares about specific named measurements (`read(value|state)` pairs) and not the full trace.
   - Example: user asks “What is this particular observable/result?” — you can instrument the program and use `read` to pull those values.
@@ -82,6 +83,7 @@ Use these when the user wants to experiment with **single UNS primitives** or sm
   - Apply a binary op (`add`, `div`, `pow`, etc.) across two UValues.
 - **`evalDKeyword` (`POST /individual/keywords/D`)**
   - Change microstate dimension / basis via the D transform on a state.
+- Every individual keyword/helper request also accepts an optional `microstates` override; use it when you need more samples but don’t want to rebuild source code.
 
 Use individual keywords when:
 - The user wants to understand a single operator’s effect.
@@ -90,28 +92,12 @@ Use individual keywords when:
 
 ### 3.4 Helper Endpoints for States, Masks and Collections
 
-Use helpers to build states and masks cleanly instead of encoding everything manually:
+Use helpers to build states, masks, and arithmetic scaffolding quickly instead of encoding everything manually:
 
-- **Uniform / Base States**
-  - `helperUniformState` – uniform UValue over microstates.
-  - `helperPsiUniform` – uniform UState (wavefunction-like).
-
-- **Localized / Structured States**
-  - `helperDeltaState` – spike at a single index.
-  - `helperState` – normalize arbitrary UValue into UState.
-  - `helperStateFromMask` – convert boolean mask → UState.
-  - `helperStateRange` – UState uniform over `[start, end]`.
-
-- **Masks**
-  - `helperMaskRange` – true over `[start, end]`.
-  - `helperMaskThreshold` – true where value passes a threshold.
-  - `helperMaskLt`, `helperMaskGt`, `helperMaskEq` – comparison-based masks.
-
-- **Collections / Composition**
-  - `helperCollection` – bundle many values/states.
-  - `helperInject` – splice a value/state into a target.
-  - `helperCancel`, `helperCancelJoint` – apply cancellation rules.
-  - `helperMix` – mix/weight values or states.
+- **State builders** – `uniform_state`, `psi_uniform`, `delta_state`, `state`, `state_from_mask`, and `state_range` cover the standard amplitude initializers.
+- **Mask utilities** – `mask_range`, `mask_threshold`, `mask_lt`, `mask_gt`, `mask_eq` return boolean UValues you can feed into other helpers.
+- **Composition helpers** – `collection`, `inject`, `CANCEL`, `CANCEL_JOINT`, and `MIX` splice, cancel, or blend simplex data.
+- **Element-wise transforms** – `absU`, `sqrtU`, `negU`, `normU`, `addU`, `subU`, `mulU`, `divU`, `powU` expose the same microstate math as the runtime’s lift helpers.
 
 **Usage pattern:**
 - Use helpers to **build or transform UValues/UStates** programmatically when a full UNS source program would be overkill, or as part of a larger interactive analysis.

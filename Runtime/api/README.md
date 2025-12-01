@@ -44,6 +44,7 @@ npm start  # listens on http://localhost:7070
 - The service exposes Swagger UI at <http://localhost:7070/docs> and the raw contract at <http://localhost:7070/openapi.json>.
 - Run `npm run build:swagger-ui` to regenerate a static `/Runtime/api/docs` bundle (ships `index.html` + `openapi.json`) for sharing outside the running server. The directory is gitignored so these assets exist only in the environment where you run the command.
 - Set `SWAGGER_SERVER_URL=https://example.com/api/v1` before `npm start` to override the `servers` array that Swagger UI advertises (handy when fronting the API with a gateway).
+- `node scripts/regression-tests.js` executes a small battery of runtime regression cases (novel propagation, `meanU`, `densityU`). The script returns a non-zero exit code if any assertion fails, making it suitable for CI smoke tests.
 
 ## Request Examples
 
