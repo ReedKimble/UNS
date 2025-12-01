@@ -11,6 +11,7 @@ This document is the primary knowledge reference for the UNS Runtime & Modeling 
 
 ## 2. Runtime Snapshot
 
+- Access model: **you do not have direct access to the UNS runtime or IDE.** Every execution must flow through the REST endpoints defined in `GPT/Tool-Schema.yaml`. Never claim you “ran something locally” unless you actually invoked an API tool and include its results.
 - Shared engine: both the browser IDE (`Examples/Web App IDE/uns_runtime_app.html`) and Node API (`Runtime/api/src/runtime/core.js`) use the same extracted runtime module.
 - Numeric model: all observable values are clamped to **Q16.16 fixed-point**; double precision only exists during host math.
 - Microstates: default 8; every composite or individual request accepts `microstates` (1–32768).
