@@ -2206,18 +2206,23 @@ class VirtualMachine {
           const ySample = arrY[i] ?? { real: 0, imag: 0 };
           const baseSample = arrBase[i] ?? { real: 0, imag: 0 };
           const ratioSample = arrRatio[i] ?? { real: 0, imag: 0 };
-          let novelId = xSample.novelId || ySample.novelId || ratioSample.novelId || baseSample.novelId;
+          const ratioNovelId = ratioSample.novelId;
+          let novelId = xSample.novelId || ySample.novelId || baseSample.novelId;
           const xMagnitude = Math.abs(decodeReal(magnitudeSquared(xSample)));
           const xReal = decodeReal(xSample.real ?? 0);
           const yReal = decodeReal(ySample.real ?? 0);
+          const xIsZero = xMagnitude < SMALL_VALUE_EPSILON;
+          const yIsZero = Math.abs(yReal) < SMALL_VALUE_EPSILON;
           let angle = decodeReal(baseSample.real ?? 0);
           if (!novelId) {
-            if (xMagnitude < SMALL_VALUE_EPSILON) {
-              if (Math.abs(yReal) < SMALL_VALUE_EPSILON) {
+            if (xIsZero) {
+              if (yIsZero) {
                 novelId = this.heap.novels.record('atan2', [complexToFloat(xSample), complexToFloat(ySample)], i);
               } else {
                 angle = yReal > 0 ? Math.PI / 2 : -Math.PI / 2;
               }
+            } else if (ratioNovelId) {
+              novelId = ratioNovelId;
             } else if (xReal < 0) {
               angle += yReal >= 0 ? Math.PI : -Math.PI;
             }
