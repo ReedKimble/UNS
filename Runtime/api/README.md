@@ -21,6 +21,15 @@ This service exposes the Universal Number Set (UNS) runtime as a stateless REST 
 | `GET` | `/api/v1/examples/{id}` | Returns the full source for a sample by slug/id. |
 | `GET` | `/openapi.json` | Serves the OpenAPI document (also mounted under `/docs`). |
 
+The runtime also exposes **individual keyword/helper endpoints** under `/api/v1/individual/...` for callers who want a single operation without uploading UNS source. Highlights include:
+
+| Method | Path | Purpose |
+| --- | --- | --- |
+| `POST` | `/api/v1/individual/keywords/{const|lift1|lift2|D}` | Invoke the corresponding UNS keyword with JSON payloads. |
+| `POST` | `/api/v1/individual/helpers/{uniform_state|state|delta_state|...}` | Generate states, masks, masks, or simplex utilities directly. |
+
+Consult `Runtime/api/openapi/openapi.yaml` (or the generated Swagger UI) for the full list that mirrors `GPT/Tool-Schema.yaml`.
+
 ## Runtime Reuse Strategy
 
 To keep the SPA and the API consistent, the server extracts the tokenizer, parser, compiler, VM, helper libraries, and simplex operators directly from `uns_runtime_app.html` into a reusable, DOM-free module. Both the browser app and the REST server now share identical semantics.
@@ -44,6 +53,7 @@ npm start  # listens on http://localhost:7070
 - The service exposes Swagger UI at <http://localhost:7070/docs> and the raw contract at <http://localhost:7070/openapi.json>.
 - Run `npm run build:swagger-ui` to regenerate a static `/Runtime/api/docs` bundle (ships `index.html` + `openapi.json`) for sharing outside the running server. The directory is gitignored so these assets exist only in the environment where you run the command.
 - Set `SWAGGER_SERVER_URL=https://example.com/api/v1` before `npm start` to override the `servers` array that Swagger UI advertises (handy when fronting the API with a gateway).
+- When producing the static docs for hosting (including Vercel builds), run `npm install && SWAGGER_SERVER_URL=https://example.com/api/v1 npm run build:swagger-ui` so the generated Swagger bundle references the correct public URL in its `servers` array.
 - `node scripts/regression-tests.js` executes a small battery of runtime regression cases (novel propagation, `meanU`, `densityU`). The script returns a non-zero exit code if any assertion fails, making it suitable for CI smoke tests.
 
 ## Request Examples
@@ -63,7 +73,7 @@ Execute and measure specific bindings:
 ```powershell
 $body = @{
 	source = @'
-		state psi = uniform_state()
+		state psi = psi_uniform()
 		let f = lift1(index, psi)
 	'@
 	reads = @(@{ value = 'f'; state = 'psi' })
