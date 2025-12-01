@@ -88,12 +88,12 @@ let pos_weighted = mulU(samples, pos_mask)
 let neg_weighted = mulU(samples, neg_mask)
 let signed = addU(pos_weighted, neg_weighted *s -1)
 let score = meanU(signed, samples_state)
-read(score | samples_state)
+// `score` is already a scalar; no read() call needed
 ```
 Execution notes:
 1. Build/obtain `samples` (UValue) and `samples_state` (UState) earlier in the program—or fetch them via helper endpoints—so that `meanU` receives both arguments it expects.
 2. Call `POST /api/v1/runtime/execute` with optional `microstates` reflecting the Python list length.
-3. Use the response `result` or `reads` to interpret `score`. If `meanU` encountered empty regions it emits Q16.16 zeros; document any such edge cases in your user summary. If you specifically need both intermediate means, keep `pos_mean`/`neg_mean` readouts but avoid inline scalar subtraction; perform the difference by building a signed UValue before the final `meanU` as shown above.
+3. Use the response `result` field (a scalar) to interpret `score`. If `meanU` encountered empty regions it emits Q16.16 zeros; document any such edge cases in your user summary. Only call `read(value | state)` when `value` is a UValue—scalar outputs should be reported directly or, if you truly need to read them, convert them into a UValue first (e.g., `let as_field = const(score)` and read that against a state).
 
 ## 5. Execution & Validation Steps
 

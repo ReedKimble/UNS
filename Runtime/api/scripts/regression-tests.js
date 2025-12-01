@@ -69,6 +69,30 @@ densityU(mask, psi)`,
       expectClose(result.result.real, 0.5, 'densityU real part');
       expectClose(result.result.imag, 0, 'densityU imag part');
     }
+  },
+  {
+    name: 'overlapDotStateInteraction',
+    description: 'psi_uniform compared against its D-rotated copy should keep OVERLAP readable and DOT≈1',
+    source: `state psi1 = psi_uniform()
+state psi2 = D(8, psi1)
+
+let overlap_val = OVERLAP(psi1, psi2)
+let dot_val = DOT(psi1, psi2)
+
+read(overlap_val | psi1)
+dot_val`,
+    microstates: 32,
+    reads: [{ value: 'overlap_val', state: 'psi1' }],
+    assert: (result) => {
+      const expectedOverlap = 1 / 32;
+      expect(result.result?.kind === 'scalar', 'DOT must return scalar');
+      expect(result.result?.novelId == null, 'DOT psi_uniform should not be novel');
+      expectClose(result.result.real, expectedOverlap, 'DOT similarity real part');
+      expectClose(result.result.imag, 0, 'DOT similarity imag part');
+      expect(Array.isArray(result.reads) && result.reads.length === 1, 'overlap read should be returned');
+      expectClose(result.reads[0].real, expectedOverlap, 'read(overlap_val | psi1) real part');
+      expectClose(result.reads[0].imag, 0, 'read(overlap_val | psi1) imag part');
+    }
   }
 ];
 

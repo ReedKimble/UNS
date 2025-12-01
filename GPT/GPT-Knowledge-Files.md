@@ -1,5 +1,6 @@
 # Files to Include in GPT Knowledge
 
+- [/GPT/Master-Guidance.md] *(start here; it explains how to read the rest)*
 - [/Runtime/Specification/UNS_Runtime32_Spec.json]
 - [/Runtime/Specification/UNS_Runtime32_Spec.md]
 - [/Runtime/Implementation/UNS_Model_VM_Implementation.md]
