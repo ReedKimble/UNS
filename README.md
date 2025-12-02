@@ -17,12 +17,17 @@ In UNS, every “number” is actually a **function** from microstates to values
 
 Formally:
 
-```
-U = (X, μ),      μ(X) = 1
-u : X → ℂ        (UNS numbers)
-ψ : X → ℂ,       ∫ |ψ(x)|² dμ = 1  (states)
-read(u | ψ) = ∫ u(x) · |ψ(x)|² dμ
-```
+\[
+U = (X, \mu), \quad \mu(X) = 1
+\]
+
+\[
+u : X \to \mathbb{C}, \quad \psi : X \to \mathbb{C}, \quad \int |\psi(x)|^2 \, d\mu = 1
+\]
+
+\[
+\operatorname{read}(u \mid \psi) = \int u(x) \cdot |\psi(x)|^2 \, d\mu
+\]
 
 Classical numbers embed as constant functions (e.g., `const(7)(x) = 7`), so UNS strictly contains ℝ and ℂ while extending them.
 

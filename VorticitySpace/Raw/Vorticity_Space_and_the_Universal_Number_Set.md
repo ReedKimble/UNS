@@ -19,28 +19,29 @@ Energy, curvature, and dimensionality arise as emergent properties of relational
 Dark matter, dark energy, and observation itself are reinterpreted as natural consequences of normalization behavior.  
 UNS thereby provides a mathematically complete ontology that resolves Gödelian incompleteness and unites the major domains of physics through relational closure.
 
+This axiom defines reality as a closed, self-consistent relational manifold.  
+Energy, curvature, and dimensionality arise as emergent properties of relational differentiation within this invariant set.  
+Dark matter, dark energy, and observation itself are reinterpreted as natural consequences of normalization behavior.  
+UNS thereby provides a mathematically complete ontology that resolves Gödelian incompleteness and unites the major domains of physics through relational closure.
 ---
-
 ## 1. Introduction
 
 The **Vorticity Space Hypothesis** proposed that existence originates from rotational differentiation within an otherwise continuous unity.  
 While the intuition captured relational emergence, it lacked mathematical formalism.  
 The **Universal Number Set (UNS)** completes that formalism: it defines a normalized, self-referential set of relational values governed by a single invariant of completeness.
+ \[
+ \sum_i |v_i|^2 = 1
+ \]
 
-UNS recasts the intuitive notion of “vortex” not as a literal rotation in a field, but as **phase circulation within the normalized manifold**.  
-This set-based view provides a mathematically closed system in which balance, differentiation, and observation all arise naturally from relational completeness.
-
----
 
 ## 2. Foundational Axiom of the Universal Number Set
 
 The Universal Number Set is defined by a single completeness invariant:
 
-\[
-\sum_i |v_i|^2 = 1
-\]
+ \[
+ F(x) = \nabla v(x)
+ \]
 
-This expresses that all relational values, across all dimensions, sum to unity.  
 Local differentiation — what Vorticity Space called “imbalance” — corresponds to *partial normalization* within the total set.
 
 | Principle | Set-Theoretic Interpretation |
@@ -48,20 +49,19 @@ Local differentiation — what Vorticity Space called “imbalance” — corres
 | **Completeness** | The total measure of all relations equals 1. |
 | **Asymmetry** | Local deviation producing distinct phenomena. |
 | **Conservation** | Redistribution maintaining completeness. |
+| **ħ (Planck)** | \( \hbar \propto \frac{E_{\text{unit}}}{\omega_{\text{unit}}} \) | Ratio linking energy to phase rotation |
+| **c (light speed)** | \( \frac{d\phi}{dt} = c \) | Invariant phase propagation velocity |
+| **G (gravitational)** | \( G \propto \frac{\kappa c^4}{8\pi E} \) | Coupling curvature to energy density |
+| **k_B (Boltzmann)** | \( k_B \propto \frac{E_{\text{redistribution}}}{S} \) | Relation of energy to entropy |
 
-From this, the system requires asymmetry for existence — differentiation emerges as the only way completeness can express itself.
-
----
-
-## 3. Dimensional Emergence
 
 Analysis within UNS shows that stable normalization closure occurs in exactly **four relational degrees of freedom**.  
 Lower-dimensional systems collapse (underdetermined), while higher-dimensional sets fragment (overdetermined).  
 Thus, four-dimensional structure — one of phase, three of orthogonal interaction — emerges as the only stable relational configuration.
 
-| Dimension | Result | Description |
-|------------|---------|-------------|
-| D < 4 | Degenerate; lacks closure | Insufficient relational axes |
+ \[
+ \Sigma_{\text{observer}} + \Sigma_{\text{environment}} = 1
+ \]
 | D = 4 | Stable | Observable spacetime |
 | D > 4 | Overcomplete | Redundant relational freedoms |
 
