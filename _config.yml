@@ -1,6 +1,13 @@
 title: Universal Number Set
+theme: jekyll-theme-cayman
 markdown: kramdown
 kramdown:
   input: GFM
   math_engine: mathjax
   hard_wrap: false
+defaults:
+  - scope:
+      path: ""
+      type: "pages"
+    values:
+      layout: default
