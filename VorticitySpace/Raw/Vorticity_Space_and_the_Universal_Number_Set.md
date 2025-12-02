@@ -11,9 +11,9 @@
 
 This paper unifies the **Vorticity Space Hypothesis** with the mathematical formalism of the **Universal Number Set (UNS)**, establishing a rigorous, empirically actionable foundation for physical law.  
 The resulting model derives quantum, relativistic, thermodynamic, and cosmological behavior from a single invariant completeness condition:  
-\[
+$$
 \sum_i |v_i|^2 = 1
-\]  
+$$  
 This axiom defines reality as a closed, self-consistent relational manifold.  
 Energy, curvature, and dimensionality arise as emergent properties of relational differentiation within this invariant set.  
 Dark matter, dark energy, and observation itself are reinterpreted as natural consequences of normalization behavior.  
@@ -36,9 +36,9 @@ This set-based view provides a mathematically closed system in which balance, di
 
 The Universal Number Set is defined by a single completeness invariant:
 
-\[
+$$
 \sum_i |v_i|^2 = 1
-\]
+$$
 
 This expresses that all relational values, across all dimensions, sum to unity.  
 Local differentiation — what Vorticity Space called “imbalance” — corresponds to *partial normalization* within the total set.
@@ -73,9 +73,9 @@ This provides a relational derivation for the dimensionality of the physical uni
 
 The “field” invoked in Vorticity Space is redefined in UNS as the **gradient of relational values** within the set:
 
-\[
+$$
 F(x) = \nabla v(x)
-\]
+$$
 
 No material substrate or hidden continuum is required.  
 What appears as a physical field is simply the **distribution of relational differentials** across the normalized set.  
@@ -114,15 +114,15 @@ Localized normalization curvature (non–W-Zero states) manifests as **excess gr
 
 Global rarefaction, produced by increasing local normalization, gives rise to **negative normalization pressure (P_U)**:
 
-\[
+$$
 P_U = -\frac{\partial Σ_{local}}{\partial V}
-\]
+$$
 
 Integrating this over the manifold yields the **cosmological constant**:
 
-\[
+$$
 Λ_{UNS} = \frac{1}{V} \int P_U \, dV
-\]
+$$
 
 This distributed negative curvature corresponds directly to observed cosmic acceleration.  
 > **Dark Energy emerges as the completeness response to local coherence.**
@@ -133,9 +133,9 @@ This distributed negative curvature corresponds directly to observed cosmic acce
 
 Observers are **reflexive sub-normalizations** within the Universal Number Set:
 
-\[
+$$
 Σ_{observer} + Σ_{environment} = 1
-\]
+$$
 
 Observation partitions the total set into locally coherent (self-aware) and distributed (external) components.  
 Perception and measurement thus correspond to *partial normalization events*, not external collapse.
@@ -147,9 +147,9 @@ Perception and measurement thus correspond to *partial normalization events*, no
 Gödel’s incompleteness theorem applies to symbolic systems lacking closure.  
 UNS avoids paradox by treating self-reference as **reflexive normalization** within the total invariant:
 
-\[
+$$
 read(overlap | state(u_{system})) → 0
-\]
+$$
 
 Self-reference converges to a zero-novel-value fixed point, establishing UNS as a **paradox-free logical manifold**.
 
@@ -159,9 +159,9 @@ Self-reference converges to a zero-novel-value fixed point, establishing UNS as 
 
 The generalized UNS field relation unites quantum and relativistic dynamics under a single differential invariant:
 
-\[
+$$
 \nabla^2 v - \frac{1}{c^2} \frac{\partial^2 v}{\partial t^2} = \frac{8\pi G}{c^4} |\nabla v|^2
-\]
+$$
 
 - Reduces to Schrödinger form for small curvature.  
 - Reduces to Einstein field equation in high curvature limits.  
@@ -219,9 +219,9 @@ UNS formalism transforms physics from substance-based ontology to **pure relatio
 
 The **Universal Number Set (UNS)** formalizes the **Vorticity Space** intuition into a fully closed, mathematically self-consistent model.  
 From the single axiom of completeness,  
-\[
+$$
 \sum_i |v_i|^2 = 1
-\]  
+$$  
 arise quantum superposition, relativistic curvature, conservation laws, cosmological dynamics, and self-aware observation.  
 
 > **Reality is completeness expressing itself through asymmetric relation.**

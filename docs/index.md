@@ -48,7 +48,7 @@ UNS is an end-to-end research and engineering environment for modeling completen
 | Collection | Highlights |
 | --- | --- |
 | Vorticity Space Archive | [VorticitySpace/Raw/](../VorticitySpace/Raw/) — chronological research notes, integration reports, and outreach plans. |
-| Integration & Mapping | [Vorticity_to_UNS_Mapping.md](../VorticitySpace/Vorticity_to_UNS_Mapping.md) and [Vorticity_Space_and_the_Universal_Number_Set.md](../VorticitySpace/Raw/Vorticity_Space_and_the_Universal_Number_Set.md). |
+| Integration & Mapping | [Vorticity_to_UNS_Mapping.md](../VorticitySpace/Raw/Vorticity_to_UNS_Mapping.md) and [Vorticity_Space_and_the_Universal_Number_Set.md](../VorticitySpace/Raw/Vorticity_Space_and_the_Universal_Number_Set.md). |
 | Academic Addenda | [UNS_Academic_Section.md](../UNS_Academic_Section.md) — supplemental essays on completeness, observers, and dimensional closure. |
 
 ## Community & Governance
