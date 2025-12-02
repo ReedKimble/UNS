@@ -1,6 +1,6 @@
 # Hidden Premises Underlying the Principle of Completeness
 
-### Author: [Your Name]  
+### Author: Reed Kimble  
 ### Date: December 2025  
 
 ---

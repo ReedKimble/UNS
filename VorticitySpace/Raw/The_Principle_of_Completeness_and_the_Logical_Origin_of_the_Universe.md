@@ -1,6 +1,6 @@
 # The Principle of Completeness and the Logical Origin of the Universe
 
-### Author: [Your Name]  
+### Author: Reed Kimble  
 ### Date: December 2025  
 
 ---

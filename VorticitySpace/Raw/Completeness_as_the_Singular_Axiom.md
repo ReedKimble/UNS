@@ -1,6 +1,6 @@
 # Completeness as the Singular Axiom: The Logical Resolution of Paradox and Reality
 
-### Author: [Your Name]  
+### Author: Reed Kimble  
 ### Date: December 2025  
 
 ---

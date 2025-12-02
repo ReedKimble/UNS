@@ -1,6 +1,6 @@
 # Unresolved Assumptions in Vorticity Space After UNS Integration
 
-### Author: [Your Name]  
+### Author: Reed Kimble  
 ### Date: December 2025  
 
 ---

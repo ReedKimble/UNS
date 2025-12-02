@@ -1,6 +1,6 @@
 # The Necessity of Asymmetry — A Logical Derivation
 
-### Author: [Your Name]  
+### Author: Reed Kimble  
 ### Date: December 2025  
 
 ---

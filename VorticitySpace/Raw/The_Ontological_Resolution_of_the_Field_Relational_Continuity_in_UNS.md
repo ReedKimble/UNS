@@ -1,6 +1,6 @@
 # The Ontological Resolution of the Field: Relational Continuity in UNS
 
-### Author: [Your Name]  
+### Author: Reed Kimble  
 ### Date: December 2025  
 
 ---

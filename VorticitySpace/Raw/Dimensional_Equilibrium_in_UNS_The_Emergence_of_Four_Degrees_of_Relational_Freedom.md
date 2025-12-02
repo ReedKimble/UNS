@@ -1,6 +1,6 @@
 # Dimensional Equilibrium in UNS: The Emergence of Four Degrees of Relational Freedom
 
-### Author: [Your Name]  
+### Author: Reed Kimble  
 ### Date: December 2025  
 
 ---

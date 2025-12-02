@@ -1,6 +1,6 @@
 # UNS Field Equations: Emergent Constants and Relativistic–Quantum Unification
 
-### Author: [Your Name]  
+### Author: Reed Kimble  
 ### Date: December 2025  
 
 ---

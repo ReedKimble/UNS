@@ -1,6 +1,6 @@
 # Distributed Normalization and the Origin of Dark Energy in UNS
 
-### Author: [Your Name]  
+### Author: Reed Kimble  
 ### Date: December 2025  
 
 ---

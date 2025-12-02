@@ -1,6 +1,6 @@
 # The Ontological Substrate of Rotation: Motion as Phase Circulation in UNS
 
-### Author: [Your Name]  
+### Author: Reed Kimble  
 ### Date: December 2025  
 
 ---

@@ -1,6 +1,6 @@
 # Energy and Conservation in UNS: The Dynamics of Completeness
 
-### Author: [Your Name]  
+### Author: Reed Kimble  
 ### Date: December 2025  
 
 ---

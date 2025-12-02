@@ -1,6 +1,6 @@
 # Appendix A: Particle–Wave Duality and the Nature of Matter in the Universal Number Set
 
-### Author: [Your Name]  
+### Author: Reed Kimble  
 ### Date: December 2025  
 
 ---

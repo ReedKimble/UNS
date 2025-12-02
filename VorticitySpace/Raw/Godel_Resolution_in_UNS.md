@@ -1,6 +1,6 @@
 # Demonstration of Gödel Resolution in UNS
 
-### Author: [Your Name]  
+### Author: Reed Kimble  
 ### Date: December 2025  
 
 ---

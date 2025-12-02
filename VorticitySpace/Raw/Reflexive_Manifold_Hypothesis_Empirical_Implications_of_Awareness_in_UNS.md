@@ -1,6 +1,6 @@
 # Reflexive Manifold Hypothesis: Empirical Implications of Awareness in UNS
 
-### Author: [Your Name]  
+### Author: Reed Kimble  
 ### Date: December 2025  
 
 ---

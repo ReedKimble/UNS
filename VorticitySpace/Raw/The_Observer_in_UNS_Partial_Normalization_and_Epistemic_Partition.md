@@ -1,6 +1,6 @@
 # The Observer in UNS: Partial Normalization and Epistemic Partition
 
-### Author: [Your Name]  
+### Author: Reed Kimble  
 ### Date: December 2025  
 
 ---
