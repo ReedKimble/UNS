@@ -54,7 +54,7 @@ This simple shift changes everything.
 
 Imagine you have:
 - a space of possibilities (call it `X`)
-- a way of assigning weight to those possibilities (a measure `μ`)
+- a way of assigning weight to those possibilities (a measure `μ`)[^kolmogorov]
 - and a requirement:  
   **the total weight is always 1**
 
@@ -126,7 +126,7 @@ No restriction.
 
 # **SECTION 5 — States: How You “Look At” a Number**
 
-A state is a distribution telling you **how to read** a UNS number:
+A state is a distribution telling you **how to read** a UNS number:[^vonneumann]
 
 ```
 psi : X -> ℂ
@@ -393,3 +393,6 @@ One that classical mathematics only ever glimpsed.
 ---
 
 # END OF GUIDED DISCOVERY DOCUMENT
+
+[^kolmogorov]: A. N. Kolmogorov and S. V. Fomin, *Measure, Lebesgue Integrals, and Hilbert Space*, Academic Press, 1957.
+[^vonneumann]: J. von Neumann, *Mathematical Foundations of Quantum Mechanics*, Princeton University Press, 1955.

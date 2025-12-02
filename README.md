@@ -13,7 +13,18 @@ The **Universal Number Set (UNS)** is an extended number system built around a s
 > **A number is not a single value.
 > A number is a distribution of values across a universe of microstates.**
 
-In UNS, every “number” is actually a **function** from microstates to values, defined on a normalized measure space. This design gives UNS mathematical behaviors that classical numbers cannot express — without breaking compatibility with real and complex numbers.
+In UNS, every “number” is actually a **function** from microstates to values, defined on a normalized measure space.[^kolmogorov] This design gives UNS mathematical behaviors that classical numbers cannot express — without breaking compatibility with real and complex numbers.
+
+Formally:
+
+```
+U = (X, μ),      μ(X) = 1
+u : X → ℂ        (UNS numbers)
+ψ : X → ℂ,       ∫ |ψ(x)|² dμ = 1  (states)
+read(u | ψ) = ∫ u(x) · |ψ(x)|² dμ
+```
+
+Classical numbers embed as constant functions (e.g., `const(7)(x) = 7`), so UNS strictly contains ℝ and ℂ while extending them.
 
 UNS is both:
 
@@ -71,7 +82,7 @@ One of UNS’s most striking properties:
 > **A UNS number can appear point-like or N-dimensional depending on the state,
 > yet yield the exact same classical readout.**
 
-This mirrors deep symmetry principles found in physics and information theory, where differently shaped systems can produce identical measurements.
+This mirrors deep symmetry principles found in physics and information theory, echoing Hilbert-space equivalences while remaining agnostic to a single inner-product structure.[^vonneumann]
 
 UNS formalizes this by design.
 
@@ -110,7 +121,7 @@ Potential applications include:
 * research into extended numeric structures
 * systems where “point numbers” are too limiting
 
-UNS is both mathematically rigorous and philosophically adventurous.
+UNS combines formal mathematical rigor with an exploratory design ethos.
 
 ---
 
@@ -119,14 +130,14 @@ UNS is both mathematically rigorous and philosophically adventurous.
 ### **📘 Universal Number Set — RFC Specification**
 
 The formal definition of UNS: grammar, rules, operators, semantics, and foundational axioms.
-→ *[link to RFC document]*
+→ [RFC/UNS_RFC.md](RFC/UNS_RFC.md)
 
 ---
 
 ### **📗 Operator Extensions**
 
 Defines extended operators such as cancellation, along with any additional lifted functions or helper constructs.
-→ *[link to operator extensions]*
+→ [Runtime/Specification/UNS_Runtime32_Spec.md#11-uns-operator-extensions](Runtime/Specification/UNS_Runtime32_Spec.md#11-uns-operator-extensions)
 
 ---
 
@@ -139,7 +150,7 @@ The `.unse` spec describes:
 * comments
 * encoding rules
 * readout conventions
-  → *[link to .unse format spec]*
+  → [RFC/UNS_RFC.md#20-uns-expression-files-unse](RFC/UNS_RFC.md#20-uns-expression-files-unse)
 
 ---
 
@@ -155,7 +166,7 @@ This is not part of the spec but is ideal for understanding the *why* behind the
 ### **🖼 Logo & Symbol Assets**
 
 A stylized UNS symbol (derived from the letters U–N–S) and banner graphics suitable for web, documentation, and packaging.
-→ *[link to logo folder]*
+→ Assets are being curated; see [TRADEMARKS.md](TRADEMARKS.md) for current usage guidance until the vector set lands in-repo.
 
 ---
 
@@ -168,7 +179,7 @@ Sample `.unse` files showing:
 * dimensional transforms
 * generation of novel values
 
-→ *[link to examples]*
+→ [Examples/](Examples/)
 
 ---
 
@@ -250,3 +261,6 @@ Contributions are welcome in the form of:
 Please open an issue or submit a PR.
 
 ---
+
+[^kolmogorov]: A. N. Kolmogorov and S. V. Fomin, *Measure, Lebesgue Integrals, and Hilbert Space*, Academic Press, 1957.
+[^vonneumann]: J. von Neumann, *Mathematical Foundations of Quantum Mechanics*, Princeton University Press, 1955.

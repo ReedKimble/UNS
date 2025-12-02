@@ -29,7 +29,7 @@ The earliest insight was the idea of a number system where:
 * **All values together sum to 1**,
 * regardless of sign, magnitude, or infinite count.
 
-This immediately invokes measure theory and probability spaces but differs in a crucial way:
+This immediately invokes measure theory and probability spaces but differs in a crucial way:[^kolmogorov]
 
 **UNS does not describe probabilities—it describes numbers distributed across microstates.**
 
@@ -50,7 +50,7 @@ It requires a mathematical structure where:
 * collapsing dimensionality must recover the same semantic number,
 * states must be normalized in a dimension-invariant way.
 
-This is the principle that ultimately pushed UNS beyond Hilbert spaces.
+This is the principle that ultimately pushed UNS beyond Hilbert spaces, motivating comparisons to classical Hilbert-space measurement theorems.[^vonneumann][^gleason]
 
 ---
 
@@ -198,6 +198,10 @@ You then directed creation of:
 
 * The **UNS RFC**
 * The `.unse` file format
+
+[^kolmogorov]: A. N. Kolmogorov and S. V. Fomin, *Measure, Lebesgue Integrals, and Hilbert Space*, Academic Press, 1957.
+[^vonneumann]: J. von Neumann, *Mathematical Foundations of Quantum Mechanics*, Princeton University Press, 1955.
+[^gleason]: A. M. Gleason, "Measures on the Closed Subspaces of a Hilbert Space," *Journal of Mathematics and Mechanics* 6, no. 6 (1957): 885–893.
 * Syntax definitions
 * Module documentation
 * A logo
