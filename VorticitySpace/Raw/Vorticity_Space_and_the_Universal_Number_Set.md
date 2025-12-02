@@ -1,8 +1,9 @@
 # Vorticity Space and the Universal Number Set: A Relational Foundation for Physical Law
+\[
+\Sigma_{\text{observer}} + \Sigma_{\text{environment}} = 1
+\]
 
-**Author:** Reed Kimble  
-**Affiliation:** Independent Researcher  
-**Repository:** [https://github.com/ReedKimble/UNS](https://github.com/ReedKimble/UNS)  
+| D = 4 | Stable | Observable spacetime |
 **Date:** December 2025  
 
 ---
@@ -18,29 +19,25 @@ This axiom defines reality as a closed, self-consistent relational manifold.
 Energy, curvature, and dimensionality arise as emergent properties of relational differentiation within this invariant set.  
 Dark matter, dark energy, and observation itself are reinterpreted as natural consequences of normalization behavior.  
 UNS thereby provides a mathematically complete ontology that resolves Gödelian incompleteness and unites the major domains of physics through relational closure.
-
-This axiom defines reality as a closed, self-consistent relational manifold.  
-Energy, curvature, and dimensionality arise as emergent properties of relational differentiation within this invariant set.  
-Dark matter, dark energy, and observation itself are reinterpreted as natural consequences of normalization behavior.  
-UNS thereby provides a mathematically complete ontology that resolves Gödelian incompleteness and unites the major domains of physics through relational closure.
 ---
 ## 1. Introduction
 
 The **Vorticity Space Hypothesis** proposed that existence originates from rotational differentiation within an otherwise continuous unity.  
 While the intuition captured relational emergence, it lacked mathematical formalism.  
 The **Universal Number Set (UNS)** completes that formalism: it defines a normalized, self-referential set of relational values governed by a single invariant of completeness.
- \[
- \sum_i |v_i|^2 = 1
- \]
+
+\[
+\sum_i |v_i|^2 = 1
+\]
 
 
 ## 2. Foundational Axiom of the Universal Number Set
 
 The Universal Number Set is defined by a single completeness invariant:
 
- \[
- F(x) = \nabla v(x)
- \]
+\[
+\sum_i |v_i|^2 = 1
+\]
 
 Local differentiation — what Vorticity Space called “imbalance” — corresponds to *partial normalization* within the total set.
 
@@ -49,19 +46,14 @@ Local differentiation — what Vorticity Space called “imbalance” — corres
 | **Completeness** | The total measure of all relations equals 1. |
 | **Asymmetry** | Local deviation producing distinct phenomena. |
 | **Conservation** | Redistribution maintaining completeness. |
-| **ħ (Planck)** | \( \hbar \propto \frac{E_{\text{unit}}}{\omega_{\text{unit}}} \) | Ratio linking energy to phase rotation |
-| **c (light speed)** | \( \frac{d\phi}{dt} = c \) | Invariant phase propagation velocity |
-| **G (gravitational)** | \( G \propto \frac{\kappa c^4}{8\pi E} \) | Coupling curvature to energy density |
-| **k_B (Boltzmann)** | \( k_B \propto \frac{E_{\text{redistribution}}}{S} \) | Relation of energy to entropy |
 
 
 Analysis within UNS shows that stable normalization closure occurs in exactly **four relational degrees of freedom**.  
 Lower-dimensional systems collapse (underdetermined), while higher-dimensional sets fragment (overdetermined).  
 Thus, four-dimensional structure — one of phase, three of orthogonal interaction — emerges as the only stable relational configuration.
-
- \[
- \Sigma_{\text{observer}} + \Sigma_{\text{environment}} = 1
- \]
+\[
+\Sigma_{\text{observer}} + \Sigma_{\text{environment}} = 1
+\]
 | D = 4 | Stable | Observable spacetime |
 | D > 4 | Overcomplete | Redundant relational freedoms |
 
@@ -95,10 +87,10 @@ Energy, momentum, and entropy are interpreted as rates of relational transformat
 
 | Constant | UNS Derivation | Interpretation |
 |-----------|----------------|----------------|
-| **ħ (Planck)** | \( \hbar \propto E_{unit}/\omega_{unit} \) | Ratio linking energy to phase rotation |
+| **ħ (Planck)** | \( \hbar \propto \frac{E_{\text{unit}}}{\omega_{\text{unit}}} \) | Ratio linking energy to phase rotation |
 | **c (light speed)** | \( \frac{d\phi}{dt} = c \) | Invariant phase propagation velocity |
 | **G (gravitational)** | \( G \propto \frac{\kappa c^4}{8\pi E} \) | Coupling curvature to energy density |
-| **k_B (Boltzmann)** | \( k_B \propto \frac{E_{redistribution}}{S} \) | Relation of energy to entropy |
+| **k_B (Boltzmann)** | \( k_B \propto \frac{E_{\text{redistribution}}}{S} \) | Relation of energy to entropy |
 
 Constants are thus not imposed quantities, but emergent ratios inherent in normalization invariance.
 
@@ -134,7 +126,7 @@ This distributed negative curvature corresponds directly to observed cosmic acce
 Observers are **reflexive sub-normalizations** within the Universal Number Set:
 
 \[
-Σ_{observer} + Σ_{environment} = 1
+\Sigma_{\text{observer}} + \Sigma_{\text{environment}} = 1
 \]
 
 Observation partitions the total set into locally coherent (self-aware) and distributed (external) components.  
