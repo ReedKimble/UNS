@@ -115,13 +115,13 @@ Localized normalization curvature (non–W-Zero states) manifests as **excess gr
 Global rarefaction, produced by increasing local normalization, gives rise to **negative normalization pressure (P_U)**:
 
 \[
-P_U = -\frac{\partial Σ_{local}}{\partial V}
+P_U = -\frac{\partial \Sigma_{\text{local}}}{\partial V}
 \]
 
 Integrating this over the manifold yields the **cosmological constant**:
 
 \[
-Λ_{UNS} = \frac{1}{V} \int P_U \, dV
+\Lambda_{\text{UNS}} = \frac{1}{V} \int P_U \, dV
 \]
 
 This distributed negative curvature corresponds directly to observed cosmic acceleration.  

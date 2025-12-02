@@ -30,20 +30,20 @@ To preserve global completeness, distributed normalization must counterbalance v
 Let the global completeness invariant be:
 
 \[
-Σ = Σ_{local} + Σ_{distributed} = 1
+\Sigma = \Sigma_{\text{local}} + \Sigma_{\text{distributed}} = 1
 \]
 
 Differentiating with respect to time gives:
 
 \[
-\frac{dΣ_{local}}{dt} = -\frac{dΣ_{distributed}}{dt}
+\frac{d\Sigma_{\text{local}}}{dt} = -\frac{d\Sigma_{\text{distributed}}}{dt}
 \]
 
-As localized structures (Σ_local) increase over time, the distributed field (Σ_distributed) decreases proportionally.  
+As localized structures (\( \Sigma_{\text{local}} \)) increase over time, the distributed field (\( \Sigma_{\text{distributed}} \)) decreases proportionally.  
 This creates an **effective negative pressure** defined as:
 
 \[
-P_U = -\frac{\partial Σ_{local}}{\partial V}
+P_U = -\frac{\partial \Sigma_{\text{local}}}{\partial V}
 \]
 
 where \( V \) is the manifold volume. Negative \( P_U \) corresponds to accelerated expansion.
@@ -55,20 +55,20 @@ where \( V \) is the manifold volume. Negative \( P_U \) corresponds to accelera
 Define local normalization density:
 
 \[
-ρ(x) = \sum_{i \in local} |v_i|^2
+\rho(x) = \sum_{i \in local} |v_i|^2
 \]
 
-and curvature as the Laplacian of ρ:
+and curvature as the Laplacian of \( \rho \):
 
 \[
-κ = ∇^2 ρ
+\kappa = ∇^2 \rho
 \]
 
-To maintain \( Σ = 1 \), a local increase in ρ (gravitational concentration) must be offset by distributed negative curvature.  
+To maintain \( \Sigma = 1 \), a local increase in \( \rho \) (gravitational concentration) must be offset by distributed negative curvature.  
 The integrated effect across the manifold yields a cosmological constant term:
 
 \[
-Λ_{UNS} = \frac{1}{V} \int P_U \, dV
+\Lambda_{\text{UNS}} = \frac{1}{V} \int P_U \, dV
 \]
 
 This quantity behaves identically to observed Dark Energy density — a constant repulsive curvature arising from completeness balance.

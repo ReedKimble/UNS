@@ -104,13 +104,13 @@ As local normalization (Σ_local) increases with structure formation, global nor
 This induces **negative normalization pressure (P_U)**:
 
 \[
-P_U = -\frac{\partial Σ_{local}}{\partial V}
+P_U = -\frac{\partial \Sigma_{\text{local}}}{\partial V}
 \]
 
 This distributed rarefaction drives accelerated expansion—identical in behavior to observed **Dark Energy**.
 
 \[
-Λ_{UNS} = \frac{1}{V} \int P_U \, dV
+\Lambda_{\text{UNS}} = \frac{1}{V} \int P_U \, dV
 \]
 
 > **Dark Energy = completeness preserving itself through distributed expansion.**
