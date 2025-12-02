@@ -1,0 +1,6 @@
+title: Universal Number Set
+markdown: kramdown
+kramdown:
+  input: GFM
+  math_engine: mathjax
+  hard_wrap: false
