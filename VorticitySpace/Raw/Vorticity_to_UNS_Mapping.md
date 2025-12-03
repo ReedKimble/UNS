@@ -134,7 +134,7 @@ UNS promotes such undefined results to **first-class numeric objects**, maintain
 | Zero-dimensional equilibrium | Uniform UState | `ψ_uniform()` |
 | W-dimension | Normalization constraint | `∑|ψ|² = 1` |
 | Dimensional emergence | D-transform / basis selection | `D(N, ψ)` |
-| External observer | Readout function | `read(f | ψ)` |
+| External observer | Readout function | `read(f \| ψ)` |
 | Dark sectors / hidden lines | Adjacent normalized manifolds | alternate ψ with shared curvature |
 | Latent asymmetry | Novel values / fixed-point bias | `kind: "novel"` entries |
 

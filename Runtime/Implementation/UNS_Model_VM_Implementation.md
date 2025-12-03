@@ -77,7 +77,7 @@ Allocation returns handles `HeapId = number`.
 | `SSCALE` | `[Scalar,UValue] -> [UValue]` | *s (scalar first) |
 | `LIFT1 func` | `[UValue] -> [UValue]` | lift unary function |
 | `LIFT2 func` | `[UValue,UValue] -> [UValue]` | lift binary function |
-| `READ` | `[UState,UValue] -> [Scalar]` | read(f | psi) |
+| `READ` | `[UState,UValue] -> [Scalar]` | `read(f \| psi)` |
 | `NORM_STATE` | `[UState] -> [UState]` | normalize in-place |
 | `D_TRANSFORM n` | `[UState] -> [UState]` | D(n, psi) |
 | `HALT` | stop | end program |

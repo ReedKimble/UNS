@@ -17,7 +17,7 @@ This note teaches GPTs how to turn imperative sketches (Python or generic pseudo
 | 2 | Translate scalar constants/functions | Use `const`, `lift1`, `lift2`, or built-in helpers (`absU`, `powU`, etc.) |
 | 3 | Translate array/state manipulations | Decide if data should be a `state` (normalized amplitudes) or `let u = ...` UValue; leverage `state`, `state_range`, `state_from_mask` |
 | 4 | Convert conditionals/loops | Replace branching with mask-based blending, `CANCEL`, `MIX`, or composite helper calls (see §3) |
-| 5 | Express reads/outputs | Add `read(value | state)` statements or populate the `reads` array in the API payload |
+| 5 | Express reads/outputs | Add `read(value \| state)` statements or populate the `reads` array in the API payload |
 | 6 | Execute | Call `POST /api/v1/runtime/execute` (or `/read`) with the UNS source + optional `microstates` + `reads` |
 | 7 | Interpret | Decode results, novels, and diagnostics back into the user’s domain language |
 
