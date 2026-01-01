@@ -6,6 +6,10 @@
 
 <a href="https://reedkimble.github.io/UNS/Examples/Web%20App%20IDE/uns_runtime_app.html" target="_blank">Universal Number Set (UNS) Runtime Playground</a>
 
+# **SEE FIRST**
+
+* **[Corpus Entry Meta Preface](https://github.com/ReedKimble/UNS/blob/2d0935c6aa98bfec708295597c2206f0e532d147/!_Corpus%20Entry_%20Meta%E2%80%91preface%20And%20Reader%20Guide.pdf)** 
+
 ## **What Is UNS?**
 
 The **Universal Number Set (UNS)** is an extended number system built around a simple but transformative idea:
@@ -266,6 +270,12 @@ Contributions are welcome in the form of:
 Please open an issue or submit a PR.
 
 ---
+
+## **Testing**
+
+A public test API implementation is availble, but I do ask that you limit your usage. Documentation exists along with ready-to-deploy samples of the same API within the UNS GitHub repo.
+
+* **[UNS Runtime REST API](https://uns-phi.vercel.app/)**
 
 [^kolmogorov]: A. N. Kolmogorov and S. V. Fomin, *Measure, Lebesgue Integrals, and Hilbert Space*, Academic Press, 1957.
 [^vonneumann]: J. von Neumann, *Mathematical Foundations of Quantum Mechanics*, Princeton University Press, 1955.
