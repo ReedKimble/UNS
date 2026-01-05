@@ -10,6 +10,10 @@
 
 * **[Corpus Entry Meta Preface](https://github.com/ReedKimble/UNS/blob/2d0935c6aa98bfec708295597c2206f0e532d147/!_Corpus%20Entry_%20Meta%E2%80%91preface%20And%20Reader%20Guide.pdf)** 
 
+# Reference
+
+Full corpus archive: **[AGOS](https://github.com/ReedKimble/AGOS)** 
+
 ## **What Is UNS?**
 
 The **Universal Number Set (UNS)** is an extended number system built around a simple but transformative idea:
