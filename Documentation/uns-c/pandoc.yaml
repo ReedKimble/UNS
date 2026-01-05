@@ -1,0 +1,23 @@
+from: markdown
+to: pdf
+
+output-file: build/UNS-C.pdf
+pdf-engine: lualatex
+
+metadata:
+  title: "UNS-C"
+  subtitle: "A Calculus over the Universal Number Set"
+  author: "Reed Kimble"
+  lang: en
+
+toc: true
+toc-depth: 3
+number-sections: true
+
+variables:
+  fontsize: 11pt
+  linestretch: 1.15
+  geometry: margin=1in
+
+include-in-header:
+  - header.tex

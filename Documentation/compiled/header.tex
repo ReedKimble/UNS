@@ -1,0 +1,25 @@
+% Existing
+\usepackage{setspace}
+\usepackage{microtype}
+
+\usepackage{newunicodechar}
+\newunicodechar{✅}{\checkmark}
+\newunicodechar{⚙}{[gear]}
+
+
+% Unicode-aware fonts (LuaLaTeX)
+\usepackage{fontspec}
+\defaultfontfeatures{Ligatures=TeX}
+
+% Use unicode-math so math symbols don't fall back to text fonts
+\usepackage{unicode-math}
+
+% Text + math fonts
+\setmainfont{Latin Modern Roman}
+\setmonofont{Latin Modern Mono}
+\setmathfont{Latin Modern Math}
+
+% (Optional) If you insist on emoji in the PDF:
+% pick one installed on your machine; Noto Color Emoji often works on Linux
+% Windows example:
+% \newfontfamily\emoji{Segoe UI Emoji}

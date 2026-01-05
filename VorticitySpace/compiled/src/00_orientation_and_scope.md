@@ -1,0 +1,11 @@
+# Orientation and Scope
+
+This document presents *Vorticity Space* as an ontological foundation. Its purpose is to describe what must be the case for reality to be coherent, complete, and internally consistent. It does not propose a model, derive equations, predict outcomes, or offer empirical tests. It makes no claim to replace existing sciences or formalisms, and it does not seek validation through them.
+
+The claims made here are necessity-based rather than evidentiary. They concern structural requirements that follow from the possibility of coherent existence itself, independent of any particular representation, measurement framework, or descriptive language. Where later works provide formal grammars, calculi, or applications, those developments are downstream expressions of the invariants articulated here and are not required for their justification.
+
+This work is intentionally minimal in scope. It addresses ontology only: the conditions under which relation, distinction, persistence, and observation can arise at all. Questions of implementation, mechanism, scale, and domain-specific law are explicitly out of scope. References to mathematics, physics, computation, cognition, or interpretation are excluded except where necessary to clarify what is *not* being claimed.
+
+No external framework is assumed. The arguments do not rely on axioms imported from logic or mathematics, nor on results from empirical inquiry. Terms are used descriptively rather than formally, and no specialized notation is introduced. The reader is not asked to accept a theory on authority, but to follow a sequence of necessity claims grounded in coherence and closure.
+
+Accordingly, this document should be read neither as speculative metaphysics nor as foundational science, but as a disciplined account of ontological structure. Its success or failure rests solely on whether the conditions it identifies are indeed unavoidable for any reality capable of containing distinction, relation, and self-reference at all.

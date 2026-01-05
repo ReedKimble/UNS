@@ -1,0 +1,23 @@
+from: markdown
+to: pdf
+
+output-file: build/Reading Vorticity Space.pdf
+pdf-engine: lualatex
+
+metadata:
+  title: "Reading Vorticity Space"
+  subtitle: "Interpretive Structure, Scope Boundaries, and Downstream Consequence"
+  author: "Reed Kimble"
+  lang: en
+
+toc: true
+toc-depth: 3
+number-sections: true
+
+variables:
+  fontsize: 11pt
+  linestretch: 1.15
+  geometry: margin=1in
+
+include-in-header:
+  - header.tex
